@@ -1,5 +1,5 @@
 cabal-version:  2.4
-name:           aoc-dev
+name:           aoc2023
 version:        0.1.0.0
 synopsis:       Development environment for Advent of Code challenges
 description:    Scaffolding for an integrated development environment for Advent of Code
@@ -184,20 +184,20 @@ library
       AOC.Util
       AOC.Util.DynoMap
   other-modules:
-      Paths_aoc_dev
+      Paths_aoc2023
   hs-source-dirs:
       src
   other-modules:
-      Paths_aoc_dev
+      Paths_aoc2023
 
-executable aoc-dev
+executable aoc2023
   import: common-options
   main-is: aoc.hs
   hs-source-dirs:
       app
   build-depends:
       ansi-terminal
-    , aoc-dev
+    , aoc2023
     , base >=4.7 && <5
     , containers
     , deepseq
@@ -208,7 +208,7 @@ executable aoc-dev
   default-language: Haskell2010
   ghc-options: -threaded -rtsopts -with-rtsopts=-N
 
-test-suite aoc-dev-test
+test-suite aoc2023-test
   import: common-options
   type: exitcode-stdio-1.0
   main-is: Spec.hs
@@ -217,19 +217,19 @@ test-suite aoc-dev-test
   ghc-options: -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       ansi-terminal
-    , aoc-dev
+    , aoc2023
     , base >=4.7 && <5
     , mtl
   default-language: Haskell2010
 
-benchmark aoc-dev-bench
+benchmark aoc2023-bench
   type: exitcode-stdio-1.0
   main-is: Bench.hs
   hs-source-dirs:
       bench
   ghc-options: -threaded -rtsopts -with-rtsopts=-N
   build-depends:
-      aoc-dev
+      aoc2023
     , base >=4.7 && <5
     , mtl
   default-language: Haskell2010

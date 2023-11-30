@@ -28,11 +28,11 @@ import qualified HTMLEntities.Text                      as H
 
 -- CONSTANTS
 year :: Integer
-year = 2020
+year = 2023
 github :: String
 github = "mstksg"
 otherYears :: S.Set Integer
-otherYears = S.fromList [2016 .. 2020]
+otherYears = S.fromList [2016 .. 2023]
 
 ctx0 :: M.Map Text Text
 ctx0 = M.fromList [
@@ -40,7 +40,7 @@ ctx0 = M.fromList [
   , ("github", T.pack github                                        )
   , ("name"  , "Justin Le"                                          )
   , ("email" , "justin@jle.im"                                      )
-  , ("rss"   , "http://feeds.feedburner.com/jle-advent-of-code-2020")
+  , ("rss"   , "http://feeds.feedburner.com/jle-advent-of-code-2023")
   , ("other_years", yearLinks                                       )
   ]
 
@@ -73,7 +73,8 @@ main :: IO ()
 main = shakeArgs opts $ do
     action $ do
       rd <- S.toList <$> reflectionDays
-      need $ ["README.md", "reflections.md", "feed.xml"]
+      need $ ["README.md", "reflections.md"]
+      -- need $ ["README.md", "reflections.md", "feed.xml"]
           ++ map standaloneReflectionPath rd
 
     "reflections.md" %> \fp -> do
