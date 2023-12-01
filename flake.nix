@@ -16,9 +16,10 @@
               src = ./.;
               compiler-nix-name = "ghc902";
               shell.tools = {
-                cabal = { };
-                # hlint = {};
-                haskell-language-server = { };
+                cabal = "latest";
+                stack = "2.9.3.1";
+                # hlint = "latest";
+                haskell-language-server = "latest";
               };
             };
           })
