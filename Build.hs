@@ -1,5 +1,17 @@
-#!/usr/bin/env stack
--- stack --install-ghc runghc --package shake --package template --package directory --package containers --package text --package filepath --package strip-ansi-escape --package html-entities --package time
+#!/usr/bin/env cabal
+{- cabal:
+build-depends:
+    base,
+    shake,
+    template,
+    directory,
+    containers,
+    text,
+    filepath,
+    strip-ansi-escape,
+    html-entities,
+    time
+-}
 
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TypeApplications  #-}
