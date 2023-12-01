@@ -40,7 +40,7 @@ haddocks][haddock] --- more info below!
 
 | Challenge | Reflections | Code      | Rendered   | Benchmarks |
 | --------- | ----------- | --------- | ---------- | ---------- |
-| Day  1    |             |           |            |            |
+| Day  1    |             | [x][d01g] | [x][d01h]  | [x][d01b]  |
 | Day  2    |             |           |            |            |
 | Day  3    |             |           |            |            |
 | Day  4    |             |           |            |            |
@@ -297,4 +297,6 @@ case you change your solution.
 
 All networking features are powered by *[advent-of-code-api][]*.
 
-
+[d01g]: https://github.com/mstksg/advent-of-code-2023/blob/master/src/AOC/Challenge/Day01.hs
+[d01h]: https://mstksg.github.io/advent-of-code-2023/src/AOC.Challenge.Day01.html
+[d01b]: https://github.com/mstksg/advent-of-code-2023/blob/master/reflections.md#day-1-benchmarks
