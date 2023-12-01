@@ -41,7 +41,7 @@ import           Data.IntMap.NonEmpty      as P (NEIntMap)
 import           Data.IntSet               as P (IntSet)
 import           Data.IntSet.NonEmpty      as P (NEIntSet)
 import           Data.Kind                 as P
-import qualified Data.List                 as P
+import           Data.List                 as P (uncons, intersperse, intercalate, transpose, subsequences, permutations, scanl', unfoldr, stripPrefix, group, inits, tails, isPrefixOf, isSuffixOf, isInfixOf, isSubsequenceOf, zip4, zip5, zip6, zip7, zipWith4, zipWith5, zipWith6, zipWith7, unzip4, unzip5, unzip6, unzip7, groupBy, sortBy)
 import           Data.List.NonEmpty        as P (NonEmpty(..), nonEmpty)
 import           Data.List.Split           as P
 import           Data.Map                  as P (Map)
@@ -62,3 +62,5 @@ import           GHC.Generics              as P (Generic)
 import           Numeric.Natural           as P
 import           Text.Printf               as P
 import           Text.Read                 as P (readMaybe)
+import           Safe                      as P (tailMay, initMay, headMay, lastMay, foldl1May', scanl1May, succMay, predMay, atMay)
+import           Safe.Foldable             as P (minimumMay, maximumMay, minimumByMay, maximumByMay, foldr1May, foldl1May)
