@@ -22,8 +22,8 @@
 --     will recommend what should go in place of the underscores.
 
 module AOC.Challenge.Day01 (
-    -- day01a
-  -- , day01b
+    day01a
+  , day01b
   ) where
 
 import           AOC.Prelude
@@ -42,6 +42,7 @@ import qualified Data.Text                      as T
 import qualified Data.Vector                    as V
 import qualified Linear                         as L
 import qualified Text.Megaparsec                as P
+import Data.List (tails, isPrefixOf)
 import qualified Text.Megaparsec.Char           as P
 import qualified Text.Megaparsec.Char.Lexer     as PP
 
@@ -49,7 +50,7 @@ day01a :: _ :~> _
 day01a = MkSol
     { sParse = Just . lines
     , sShow  = show
-    , sSolve = Just
+    , sSolve = Just . sum . mapMaybe (readMaybe @Int . (\xs -> [head xs, last xs]) . filter isDigit)
     }
 
 day01b :: _ :~> _
@@ -57,4 +58,10 @@ day01b = MkSol
     { sParse = sParse day01a
     , sShow  = show
     , sSolve = Just
+             . sum
+             . map (((\xs -> (head xs :: Int)*10 + last xs)) . mapMaybe hasNumber . tails)
     }
+  where
+    hasNumber x = firstJust (\(t,y) -> guard (t `isPrefixOf` x) $> y) $
+        [ (show y, y) | y <- [0..9] ]
+     ++ ( zip ["zero","one","two","three","four","five","six","seven","eight","nine"] [0..9])
