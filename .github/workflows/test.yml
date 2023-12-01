@@ -3,16 +3,13 @@ on:
   pull_request:
   push:
 jobs:
-  free-disk-space:
+  cache:
     runs-on: ubuntu-latest
     steps:
     - name: Free Disk Space (Ubuntu)
       uses: jlumbroso/free-disk-space@main
       with:
         tool-cache: false
-  cache:
-    runs-on: ubuntu-latest
-    steps:
     - uses: actions/checkout@v3
     - uses: cachix/install-nix-action@v20
       with:
