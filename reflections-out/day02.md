@@ -63,7 +63,7 @@ Going back to parsing, one neat way we can leverage `V3` is with its `Functor`
 instance:
 
 ```
--- [("red", 1), ("green", 2), ("blue", 6)]
+-- [("red", 1), ("blue", 2), ("green", 6)] => V3 1 6 2
 pairUp :: [(String, Int)] -> V3 Int
 pairUp pairs = do
     color <- V3 "red" "green" "blue"
