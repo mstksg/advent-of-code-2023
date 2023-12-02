@@ -19,7 +19,6 @@ import Control.Monad (guard)
 import Data.Functor ((<&>))
 import Data.List.Split (splitOn)
 import Data.Maybe (mapMaybe, fromMaybe)
-import Data.Traversable (for)
 import Linear.V3 (V3(..))
 import Text.Read (readMaybe)
 
@@ -28,21 +27,31 @@ parseLine fullLine = do
     (gameNum, specs) <- listTup $ splitOn ": " fullLine
     ("Game", n) <- listTup $ words gameNum
     i <- readMaybe n
-    sets <- for (splitOn "; " specs) $ \chunk -> do
-      gs <- traverse (listTup . reverse . words) $ splitOn ", " chunk
-      pure $
-        V3 "red" "green" "blue" <&> \col ->
-          fromMaybe 0 $ readMaybe =<< lookup col gs
+    sets <- traverse (setToV3 . splitOn ", ") (splitOn "; " specs)
     pure (i, sets)
+
+-- ["1 red", "2 green", "6 blue"]
+setToV3 :: [String] -> Maybe (V3 Int)
+setToV3 = fmap pairUp
+        . traverse (listTup . reverse . words)
+  where 
+    pairUp :: [(String, String)] -> V3 Int
+    pairUp pairs =
+        V3 "red" "green" "blue" <&> \col -> fromMaybe 0 do
+          num <- lookup col pairs
+          readMaybe num
 
 day02a :: [(Int, [V3 Int])] :~> Int
 day02a = MkSol
     { sParse = traverse parseLine . lines
     , sShow  = show
-    , sSolve = Just . sum . mapMaybe (\(a,b) -> a <$ guard (isLegal b))
+    , sSolve = Just . sum . mapMaybe (\(a,b) -> a <$ guard (all isLegal b))
     }
   where
-    isLegal = all (and . liftA2 (>=) (V3 12 13 14))
+    isLegal colorVec = and do
+      allowed <- V3 12 13 14
+      amount <- colorVec
+      pure (amount <= allowed)
 
 day02b :: [[V3 Int]] :~> Int
 day02b = MkSol
