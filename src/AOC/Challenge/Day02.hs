@@ -22,8 +22,8 @@
 --     will recommend what should go in place of the underscores.
 
 module AOC.Challenge.Day02 (
-    -- day02a
-  -- , day02b
+    day02a
+  , day02b
   ) where
 
 import           AOC.Prelude
@@ -45,16 +45,34 @@ import qualified Text.Megaparsec                as P
 import qualified Text.Megaparsec.Char           as P
 import qualified Text.Megaparsec.Char.Lexer     as PP
 
+-- Game 1: 14 green, 8 blue, 9 red; 5 blue, 4 green, 2 red; 4 red, 4 blue, 4 green; 1 blue, 3 green, 2 red; 10 red, 3 blue, 15 green; 2 red, 6 green, 3 blue
+
+parseLine :: String -> Maybe (Int, [V3 Int])
+parseLine fullLine = do
+    [gameNum, specs] <- pure $ splitOn ": " fullLine
+    ["Game", n] <- pure $ words gameNum
+    i <- readMaybe n
+    sets <- for (splitOn "; " specs) $ \chunk -> do
+      gs <- traverse (listTup . reverse . words) $ splitOn ", " chunk
+      pure $
+        V3 "red" "green" "blue" <&> \col ->
+          fromMaybe 0 $ readMaybe =<< lookup col gs
+    pure (i, sets)
+
 day02a :: _ :~> _
 day02a = MkSol
-    { sParse = Just . lines
+    { sParse = traverse parseLine . lines
     , sShow  = show
-    , sSolve = Just
+    , sSolve = Just . sum . mapMaybe (\(a,b) -> a <$ guard (isLegal b))
     }
+  where
+    isLegal = all (and . liftA2 (>=) (V3 12 13 14))
 
 day02b :: _ :~> _
 day02b = MkSol
     { sParse = sParse day02a
     , sShow  = show
-    , sSolve = Just
+    , sSolve = Just . sum . map (calcPower . snd)
     }
+  where
+    calcPower = product . foldr (liftA2 max) 0
