@@ -98,30 +98,22 @@ day01b = day01 extract2
 ### Day 1 Benchmarks
 
 ```
-Build profile: -w ghc-9.0.2 -O1
-In order, the following will be built (use -v for more details):
- - aoc2023-0.1.0.0 (lib) (file README.md changed)
- - aoc2023-0.1.0.0 (exe:aoc2023) (dependency rebuilt)
-Preprocessing library for aoc2023-0.1.0.0..
-Building library for aoc2023-0.1.0.0..
-Preprocessing executable 'aoc2023' for aoc2023-0.1.0.0..
-Building executable 'aoc2023' for aoc2023-0.1.0.0..
 >> Day 01a
 benchmarking...
-time                 630.3 μs   (600.2 μs .. 657.1 μs)
-                     0.984 R²   (0.976 R² .. 0.991 R²)
-mean                 586.8 μs   (572.0 μs .. 602.8 μs)
-std dev              56.16 μs   (45.97 μs .. 71.08 μs)
-variance introduced by outliers: 74% (severely inflated)
+time                 644.4 μs   (634.7 μs .. 654.0 μs)
+                     0.992 R²   (0.985 R² .. 0.997 R²)
+mean                 636.6 μs   (615.0 μs .. 658.1 μs)
+std dev              72.70 μs   (60.51 μs .. 86.91 μs)
+variance introduced by outliers: 80% (severely inflated)
 
 * parsing and formatting times excluded
 
 >> Day 01b
 benchmarking...
-time                 3.228 ms   (3.207 ms .. 3.274 ms)
-                     0.999 R²   (0.997 R² .. 1.000 R²)
-mean                 3.229 ms   (3.214 ms .. 3.270 ms)
-std dev              71.01 μs   (8.521 μs .. 149.4 μs)
+time                 3.106 ms   (3.086 ms .. 3.145 ms)
+                     1.000 R²   (0.999 R² .. 1.000 R²)
+mean                 3.094 ms   (3.090 ms .. 3.105 ms)
+std dev              22.59 μs   (8.206 μs .. 41.38 μs)
 
 * parsing and formatting times excluded
 ```
@@ -149,39 +141,23 @@ that file instead!
 ### Day 2 Benchmarks
 
 ```
-Resolving dependencies...
-Build profile: -w ghc-9.0.2 -O1
-In order, the following will be built (use -v for more details):
- - aoc2023-0.1.0.0 (lib) (file README.md changed)
- - aoc2023-0.1.0.0 (exe:aoc2023) (dependency rebuilt)
-Preprocessing library for aoc2023-0.1.0.0..
-Building library for aoc2023-0.1.0.0..
-[36 of 41] Compiling AOC.Challenge.Day02
-[37 of 41] Compiling AOC.Challenge [AOC.Challenge.Day02 changed]
-[38 of 41] Compiling AOC.Run.Load [AOC.Challenge changed]
-[39 of 41] Compiling AOC.Run [AOC.Challenge changed]
-[40 of 41] Compiling AOC.Run.Interactive [AOC.Challenge changed]
-[41 of 41] Compiling AOC [AOC.Challenge changed]
-Preprocessing executable 'aoc2023' for aoc2023-0.1.0.0..
-Building executable 'aoc2023' for aoc2023-0.1.0.0..
-[1 of 1] Compiling Main [AOC changed]
-Linking /home/justin/projects/haskell/advent-of-code/aoc2023/dist-newstyle/build/x86_64-linux/ghc-9.0.2/aoc2023-0.1.0.0/x/aoc2023/build/aoc2023/aoc2023 ...
 >> Day 02a
 benchmarking...
-time                 1.369 μs   (1.365 μs .. 1.376 μs)
-                     1.000 R²   (1.000 R² .. 1.000 R²)
-mean                 1.368 μs   (1.367 μs .. 1.373 μs)
-std dev              7.508 ns   (4.916 ns .. 11.95 ns)
+time                 1.376 μs   (1.373 μs .. 1.380 μs)
+                     0.999 R²   (0.998 R² .. 1.000 R²)
+mean                 1.388 μs   (1.376 μs .. 1.435 μs)
+std dev              75.81 ns   (6.071 ns .. 160.5 ns)
+variance introduced by outliers: 69% (severely inflated)
 
 * parsing and formatting times excluded
 
 >> Day 02b
 benchmarking...
-time                 4.331 μs   (4.279 μs .. 4.378 μs)
-                     0.996 R²   (0.992 R² .. 0.998 R²)
-mean                 4.084 μs   (3.959 μs .. 4.270 μs)
-std dev              436.2 ns   (342.4 ns .. 618.7 ns)
-variance introduced by outliers: 89% (severely inflated)
+time                 3.878 μs   (3.678 μs .. 4.054 μs)
+                     0.992 R²   (0.988 R² .. 0.997 R²)
+mean                 3.808 μs   (3.761 μs .. 3.861 μs)
+std dev              173.2 ns   (112.0 ns .. 256.3 ns)
+variance introduced by outliers: 58% (severely inflated)
 
 * parsing and formatting times excluded
 ```

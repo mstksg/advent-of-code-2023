@@ -213,6 +213,7 @@ main = shakeArgs opts $ do
 
     "bench-out/*.txt" %> \fp -> do
         let Just d = parseDayFp fp
+        cmd_ ("cabal build" :: String)
         Stdout out <- cmd (printf "cabal run aoc%d -- bench %d" year d :: String)
         writeFileChanged fp . T.unpack . T.strip . stripAnsiEscapeCodes . T.pack $ out
 

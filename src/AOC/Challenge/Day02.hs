@@ -25,8 +25,8 @@ import Text.Read (readMaybe)
 
 parseLine :: String -> Maybe (Int, [V3 Int])
 parseLine fullLine = do
-    [gameNum, specs] <- pure $ splitOn ": " fullLine
-    ["Game", n] <- pure $ words gameNum
+    (gameNum, specs) <- listTup $ splitOn ": " fullLine
+    ("Game", n) <- listTup $ words gameNum
     i <- readMaybe n
     sets <- for (splitOn "; " specs) $ \chunk -> do
       gs <- traverse (listTup . reverse . words) $ splitOn ", " chunk
