@@ -37,6 +37,7 @@ import qualified Data.Set                               as S
 import qualified Data.Text                              as T
 import qualified Data.Text.Lazy                         as TL
 import qualified HTMLEntities.Text                      as H
+import qualified GHC.IO.Encoding                        as IO
 
 -- CONSTANTS
 year :: Integer
@@ -85,6 +86,7 @@ main :: IO ()
 main = shakeArgs opts $ do
     action $ do
       rd <- S.toList <$> reflectionDays
+      liftIO $ IO.setLocaleEncoding IO.utf8
       need $ ["README.md", "reflections.md"]
       -- need $ ["README.md", "reflections.md", "feed.xml"]
           ++ map standaloneReflectionPath rd
@@ -211,7 +213,7 @@ main = shakeArgs opts $ do
 
     "bench-out/*.txt" %> \fp -> do
         let Just d = parseDayFp fp
-        Stdout out <- cmd ("stack run --" :: String) (printf "bench %d" d :: String)
+        Stdout out <- cmd (printf "cabal run aoc%d -- bench %d" year d :: String)
         writeFileChanged fp . T.unpack . T.strip . stripAnsiEscapeCodes . T.pack $ out
 
     "clean" ~> do

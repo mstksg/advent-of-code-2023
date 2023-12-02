@@ -48,3 +48,4 @@ day01 extractor = sum . map (sum . extractor) . lines
 day01a = day01 extract1
 day01b = day01 extract2
 ```
+
