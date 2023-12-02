@@ -24,6 +24,7 @@ Table of Contents
 -----------------
 
 * [Day 1](#day-1)
+* [Day 2](#day-2) *(no reflection yet)*
 
 Day 1
 ------
@@ -121,6 +122,66 @@ time                 3.228 ms   (3.207 ms .. 3.274 ms)
                      0.999 R²   (0.997 R² .. 1.000 R²)
 mean                 3.229 ms   (3.214 ms .. 3.270 ms)
 std dev              71.01 μs   (8.521 μs .. 149.4 μs)
+
+* parsing and formatting times excluded
+```
+
+
+
+Day 2
+------
+
+<!--
+This section is generated and compiled by the build script at ./Build.hs from
+the file `./reflections/day02.md`.  If you want to edit this, edit
+that file instead!
+-->
+
+*[Prompt][d02p]* / *[Code][d02g]* / *[Rendered][d02h]* / *[Standalone Reflection Page][d02r]*
+
+[d02p]: https://adventofcode.com/2023/day/2
+[d02g]: https://github.com/mstksg/advent-of-code-2023/blob/master/src/AOC/Challenge/Day02.hs
+[d02h]: https://mstksg.github.io/advent-of-code-2023/src/AOC.Challenge.Day02.html
+[d02r]: https://github.com/mstksg/advent-of-code-2023/blob/master/reflections-out/day02.md
+
+*Reflection not yet written -- please check back later!*
+
+### Day 2 Benchmarks
+
+```
+Resolving dependencies...
+Build profile: -w ghc-9.0.2 -O1
+In order, the following will be built (use -v for more details):
+ - aoc2023-0.1.0.0 (lib) (file README.md changed)
+ - aoc2023-0.1.0.0 (exe:aoc2023) (dependency rebuilt)
+Preprocessing library for aoc2023-0.1.0.0..
+Building library for aoc2023-0.1.0.0..
+[36 of 41] Compiling AOC.Challenge.Day02
+[37 of 41] Compiling AOC.Challenge [AOC.Challenge.Day02 changed]
+[38 of 41] Compiling AOC.Run.Load [AOC.Challenge changed]
+[39 of 41] Compiling AOC.Run [AOC.Challenge changed]
+[40 of 41] Compiling AOC.Run.Interactive [AOC.Challenge changed]
+[41 of 41] Compiling AOC [AOC.Challenge changed]
+Preprocessing executable 'aoc2023' for aoc2023-0.1.0.0..
+Building executable 'aoc2023' for aoc2023-0.1.0.0..
+[1 of 1] Compiling Main [AOC changed]
+Linking /home/justin/projects/haskell/advent-of-code/aoc2023/dist-newstyle/build/x86_64-linux/ghc-9.0.2/aoc2023-0.1.0.0/x/aoc2023/build/aoc2023/aoc2023 ...
+>> Day 02a
+benchmarking...
+time                 1.369 μs   (1.365 μs .. 1.376 μs)
+                     1.000 R²   (1.000 R² .. 1.000 R²)
+mean                 1.368 μs   (1.367 μs .. 1.373 μs)
+std dev              7.508 ns   (4.916 ns .. 11.95 ns)
+
+* parsing and formatting times excluded
+
+>> Day 02b
+benchmarking...
+time                 4.331 μs   (4.279 μs .. 4.378 μs)
+                     0.996 R²   (0.992 R² .. 0.998 R²)
+mean                 4.084 μs   (3.959 μs .. 4.270 μs)
+std dev              436.2 ns   (342.4 ns .. 618.7 ns)
+variance introduced by outliers: 89% (severely inflated)
 
 * parsing and formatting times excluded
 ```
