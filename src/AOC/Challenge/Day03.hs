@@ -6,17 +6,6 @@
 -- Portability : non-portable
 --
 -- Day 3.  See "AOC.Solver" for the types used in this module!
---
--- After completing the challenge, it is recommended to:
---
--- *   Replace "AOC.Prelude" imports to specific modules (with explicit
---     imports) for readability.
--- *   Remove the @-Wno-unused-imports@ and @-Wno-unused-top-binds@
---     pragmas.
--- *   Replace the partial type signatures underscores in the solution
---     types @_ :~> _@ with the actual types of inputs and outputs of the
---     solution.  You can delete the type signatures completely and GHC
---     will recommend what should go in place of the underscores.
 
 module AOC.Challenge.Day03 (
     day03a
@@ -26,6 +15,7 @@ module AOC.Challenge.Day03 (
 import AOC.Common (listTup)
 import AOC.Common.Point (Point, fullNeighbs, contiguousRegions, fullNeighbsSet, parseAsciiMap)
 import AOC.Solver ((:~>)(..))
+import Control.Monad (guard)
 import Data.Bifunctor (first)
 import Data.Char (isDigit)
 import Data.Map (Map)
@@ -60,8 +50,7 @@ day03b :: (Set Point, Map Point Char) :~> Int
 day03b = MkSol
     { sParse = Just . first M.keysSet . M.mapEither id . parseAsciiMap (\case
           '*' -> Just $ Left ()
-          c | isDigit c -> Just $ Right c
-          _ -> Nothing
+          c   -> Right c <$ guard (isDigit c)
         )
     , sShow  = show
     , sSolve = \(symbolPoints, numPoints) ->
