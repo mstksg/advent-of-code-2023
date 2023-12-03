@@ -17,6 +17,7 @@ import AOC.Common.Point (Point, fullNeighbs, contiguousRegions, fullNeighbsSet, 
 import AOC.Solver ((:~>)(..))
 import Control.Monad (guard)
 import Data.Bifunctor (first)
+import Control.Lens (each, traverseOf)
 import Data.Char (isDigit)
 import Data.Map (Map)
 import Data.Maybe (mapMaybe)
@@ -43,7 +44,7 @@ day03a = MkSol
                   . M.restrictKeys numPoints
                   . NES.toSet
                 <$> S.toList validNumChunks
-         in sum <$> traverse (readMaybe @Int) numStrings
+         in sum <$> traverse readMaybe numStrings
     }
 
 day03b :: (Set Point, Map Point Char) :~> Int
@@ -65,7 +66,8 @@ day03b = MkSol
               orig <- M.elems $
                 adjacentToSymbols `M.restrictKeys` rg
               pure (orig, S.singleton rgDigits)
-         in fmap (sum . map (uncurry (*)) . mapMaybe listTup)
-              . traverse (traverse (readMaybe @Int))
-              $ S.toList <$> M.elems validNumChunks
+         in fmap (sum . map (uncurry (*)))
+              . traverse (traverseOf each readMaybe)
+              . mapMaybe (listTup . S.elems)
+              $ M.elems validNumChunks
     }
