@@ -22,8 +22,8 @@
 --     will recommend what should go in place of the underscores.
 
 module AOC.Challenge.Day03 (
-    -- day03a
-  -- , day03b
+    day03a
+  , day03b
   ) where
 
 import           AOC.Prelude
@@ -38,6 +38,7 @@ import qualified Data.Map                       as M
 import qualified Data.OrdPSQ                    as PSQ
 import qualified Data.Sequence                  as Seq
 import qualified Data.Set                       as S
+import qualified Data.Set.NonEmpty              as NES
 import qualified Data.Text                      as T
 import qualified Data.Vector                    as V
 import qualified Linear                         as L
@@ -47,14 +48,45 @@ import qualified Text.Megaparsec.Char.Lexer     as PP
 
 day03a :: _ :~> _
 day03a = MkSol
-    { sParse = Just . lines
+    { sParse = Just . first M.keysSet . M.mapEither id . parseAsciiMap (\case
+          '.' -> Nothing
+          c   -> Just $ maybeToEither c (digitToIntSafe c)
+        )
     , sShow  = show
-    , sSolve = Just
+    , sSolve = \(symbolPoints, numPoints) ->
+        let numChunks = contiguousRegions (M.keysSet numPoints)
+            adjacentToSymbols = S.fromList $
+              fullNeighbs =<< S.toList symbolPoints
+            validNumChunks = flip S.filter numChunks \numChunk ->
+              not $ NES.toSet numChunk `S.disjoint` adjacentToSymbols
+            numStrings = map intToDigit . M.elems
+                  . M.restrictKeys numPoints
+                  . NES.toSet
+                <$> S.toList validNumChunks
+         in sum <$> traverse (readMaybe @Int) numStrings
     }
 
 day03b :: _ :~> _
 day03b = MkSol
-    { sParse = sParse day03a
+    { sParse = Just . first M.keysSet . M.mapEither id . parseAsciiMap (\case
+          '.' -> Nothing
+          '*' -> Just $ Left ()
+          c   -> Right <$> digitToIntSafe c
+        )
     , sShow  = show
-    , sSolve = Just
+    , sSolve = \(symbolPoints, numPoints) ->
+        let numChunks = contiguousRegions (M.keysSet numPoints)
+            adjacentToSymbols = M.fromList do
+              p <- S.toList symbolPoints
+              n <- fullNeighbs p
+              pure (n, p)
+            validNumChunks = M.fromListWith (<>) do
+              rg <- NES.toSet <$> S.toList numChunks
+              let rgDigits = M.elems $ M.restrictKeys numPoints rg
+              orig <- M.elems $
+                adjacentToSymbols `M.restrictKeys` rg
+              pure (orig, S.singleton rgDigits)
+         in fmap (sum . map (uncurry (*)) . mapMaybe listTup)
+              . traverse (traverse (readMaybe @Int . map intToDigit))
+              $ S.toList <$> M.elems validNumChunks
     }
