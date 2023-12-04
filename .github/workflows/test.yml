@@ -6,7 +6,7 @@ jobs:
   cache:
     strategy:
       matrix:
-        runs-on: [ ubuntu-latest, macos-latest ]
+        runner: [ ubuntu-latest, macos-latest ]
     runs-on: ${{ matrix.runner }}
     steps:
     - name: Free Disk Space
