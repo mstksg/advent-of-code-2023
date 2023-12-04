@@ -45,19 +45,30 @@ import qualified Text.Megaparsec                as P
 import qualified Text.Megaparsec.Char           as P
 import qualified Text.Megaparsec.Char.Lexer     as PP
 
-day04a :: _ :~> _
+-- Card   1: 72 42 34  7 30  3 25 63 99 15 | 63 30 64 15 72 55 73 32 75 41 37 77 49 51 95 16 25  3 92 18 87  2 71 28 10
+
+day04a :: [(Set Int, Set Int)] :~> Int
 day04a = MkSol
-    { sParse = noFail $
-                  lines
+    { sParse = traverse (
+        listTup <=< traverse (fmap S.fromList . traverse readMaybe . words) . splitOn "|" . (!! 1) . splitOn ":")
+        . lines
     , sShow  = show
     , sSolve = noFail $
-                  id
+          sum . map (\(x,y) -> 
+            let n = S.size $ x `S.intersection` y
+             in if n == 0 then 0 else 2 ^ (n-1)
+             )
     }
 
-day04b :: _ :~> _
+day04b :: [(Set Int, Set Int)] :~> Int
 day04b = MkSol
     { sParse = sParse day04a
     , sShow  = show
-    , sSolve = noFail $
-                  id
+    , sSolve = noFail $ \cards ->
+        let ixedCards = M.fromList $ zip [1..] cards
+         in sum . flip evalState (1 <$ ixedCards) $
+              for (M.toList ixedCards) \(i, (a,b)) -> state \currState ->
+                let n = S.size $ a `S.intersection` b
+                    newCards = M.fromList ((,currState M.! i) . (+i) <$> [1 .. n])
+                 in (currState M.! i, M.unionWith (+) newCards currState)
     }
