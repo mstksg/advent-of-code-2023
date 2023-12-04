@@ -14,7 +14,7 @@
 --
 
 module AOC.Solver (
-    (:~>)(..)
+    (:~>)(..), noFail
   , withSolver, withSolver'
   , SomeSolution(.., MkSomeSol)
   , SolutionError(..)
@@ -52,6 +52,9 @@ data a :~> b = MkSol
              => a      -> Maybe b    -- ^ solve an @a@ input to a @b@ solution
     , sShow  :: b      -> String     -- ^ print out the @b@ solution in a pretty way
     }
+
+noFail :: (a -> b) -> a -> Maybe b
+noFail f = Just . f
 
 -- | Wrap an @a ':~>' b@ and hide the type variables so we can put
 -- different solutions in a container.
