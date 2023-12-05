@@ -52,8 +52,8 @@ parseLine (x : xs) = do
   initSeeds <- traverse readMaybe $ drop 1 (words x)
   ivMaps <- for (splitOn [""] (drop 1 xs)) \ys ->
     IVM.fromList
-      <$> for (words <$> drop 1 ys) \y -> do
-        (dest, src, len) <- listTup3 =<< traverse readMaybe y
+      <$> for (drop 1 ys) \y -> do
+        (dest, src, len) <- listTup3 =<< traverse readMaybe (words y)
         pure (fromRange src len, dest - src)
   pure (initSeeds, ivMaps)
 
