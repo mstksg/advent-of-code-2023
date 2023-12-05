@@ -20,7 +20,7 @@
                 tools = {
                   cabal = { };
                   # stack = {};
-                  # hlint = {};
+                  hlint = { };
                   haskell-language-server = { };
                 };
               };
