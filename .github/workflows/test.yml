@@ -11,8 +11,6 @@ jobs:
     steps:
     - name: Free Disk Space
       uses: insightsengineering/free-disk-space@main
-      with:
-        tool-cache: false
     - uses: actions/checkout@v3
     - uses: cachix/install-nix-action@v20
       with:
