@@ -15,12 +15,14 @@
               name = "aoc2023";
               src = ./.;
               compiler-nix-name = "ghc902";
-              # TODO: no hoogle
-              shell.tools = {
-                cabal = {};
-                # stack = {};
-                # hlint = {};
-                haskell-language-server = {};
+              shell = {
+                withHoogle = false;
+                tools = {
+                  cabal = { };
+                  # stack = {};
+                  # hlint = {};
+                  haskell-language-server = { };
+                };
               };
             };
           })
