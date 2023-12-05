@@ -14,7 +14,7 @@
             aoc2023 = final.haskell-nix.project' {
               name = "aoc2023";
               src = ./.;
-              compiler-nix-name = "ghc902";
+              compiler-nix-name = "ghc928";
               shell = {
                 withHoogle = false;
                 tools = {
