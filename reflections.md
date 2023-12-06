@@ -25,6 +25,9 @@ Table of Contents
 
 * [Day 1](#day-1)
 * [Day 2](#day-2)
+* [Day 3](#day-3) *(no reflection yet)*
+* [Day 4](#day-4) *(no reflection yet)*
+* [Day 5](#day-5)
 
 Day 1
 ------
@@ -208,6 +211,216 @@ time                 3.878 μs   (3.678 μs .. 4.054 μs)
 mean                 3.808 μs   (3.761 μs .. 3.861 μs)
 std dev              173.2 ns   (112.0 ns .. 256.3 ns)
 variance introduced by outliers: 58% (severely inflated)
+
+* parsing and formatting times excluded
+```
+
+
+
+Day 3
+------
+
+<!--
+This section is generated and compiled by the build script at ./Build.hs from
+the file `./reflections/day03.md`.  If you want to edit this, edit
+that file instead!
+-->
+
+*[Prompt][d03p]* / *[Code][d03g]* / *[Rendered][d03h]* / *[Standalone Reflection Page][d03r]*
+
+[d03p]: https://adventofcode.com/2023/day/3
+[d03g]: https://github.com/mstksg/advent-of-code-2023/blob/master/src/AOC/Challenge/Day03.hs
+[d03h]: https://mstksg.github.io/advent-of-code-2023/src/AOC.Challenge.Day03.html
+[d03r]: https://github.com/mstksg/advent-of-code-2023/blob/master/reflections-out/day03.md
+
+*Reflection not yet written -- please check back later!*
+
+### Day 3 Benchmarks
+
+```
+>> Day 03a
+benchmarking...
+time                 10.59 ms   (10.40 ms .. 10.83 ms)
+                     0.996 R²   (0.991 R² .. 1.000 R²)
+mean                 10.49 ms   (10.43 ms .. 10.73 ms)
+std dev              291.4 μs   (112.4 μs .. 559.0 μs)
+
+* parsing and formatting times excluded
+
+>> Day 03b
+benchmarking...
+time                 7.405 ms   (7.385 ms .. 7.423 ms)
+                     1.000 R²   (1.000 R² .. 1.000 R²)
+mean                 7.420 ms   (7.412 ms .. 7.432 ms)
+std dev              26.68 μs   (18.95 μs .. 40.49 μs)
+
+* parsing and formatting times excluded
+```
+
+
+
+Day 4
+------
+
+<!--
+This section is generated and compiled by the build script at ./Build.hs from
+the file `./reflections/day04.md`.  If you want to edit this, edit
+that file instead!
+-->
+
+*[Prompt][d04p]* / *[Code][d04g]* / *[Rendered][d04h]* / *[Standalone Reflection Page][d04r]*
+
+[d04p]: https://adventofcode.com/2023/day/4
+[d04g]: https://github.com/mstksg/advent-of-code-2023/blob/master/src/AOC/Challenge/Day04.hs
+[d04h]: https://mstksg.github.io/advent-of-code-2023/src/AOC.Challenge.Day04.html
+[d04r]: https://github.com/mstksg/advent-of-code-2023/blob/master/reflections-out/day04.md
+
+*Reflection not yet written -- please check back later!*
+
+### Day 4 Benchmarks
+
+```
+>> Day 04a
+benchmarking...
+time                 170.3 μs   (169.9 μs .. 170.6 μs)
+                     1.000 R²   (1.000 R² .. 1.000 R²)
+mean                 169.8 μs   (169.7 μs .. 170.0 μs)
+std dev              485.7 ns   (334.9 ns .. 807.0 ns)
+
+* parsing and formatting times excluded
+
+>> Day 04b
+benchmarking...
+time                 315.3 μs   (314.7 μs .. 316.1 μs)
+                     1.000 R²   (1.000 R² .. 1.000 R²)
+mean                 314.8 μs   (314.4 μs .. 315.2 μs)
+std dev              1.252 μs   (781.1 ns .. 1.957 μs)
+
+* parsing and formatting times excluded
+```
+
+
+
+Day 5
+------
+
+<!--
+This section is generated and compiled by the build script at ./Build.hs from
+the file `./reflections/day05.md`.  If you want to edit this, edit
+that file instead!
+-->
+
+*[Prompt][d05p]* / *[Code][d05g]* / *[Rendered][d05h]* / *[Standalone Reflection Page][d05r]*
+
+[d05p]: https://adventofcode.com/2023/day/5
+[d05g]: https://github.com/mstksg/advent-of-code-2023/blob/master/src/AOC/Challenge/Day05.hs
+[d05h]: https://mstksg.github.io/advent-of-code-2023/src/AOC.Challenge.Day05.html
+[d05r]: https://github.com/mstksg/advent-of-code-2023/blob/master/reflections-out/day05.md
+
+Another year and another puzzle where I feel like using Haskell's
+[data-interval][] is cheating :)  It lets us work with ranged intervals and
+gives us types like `IntervalSet` (a set of intervals) and `IntervalMap`
+(mapping intervals to values), but with the correct implementations of map
+intersection, set intersection, etc. that is aware of how intervals work.  We 
+can generate a single `Interval`:
+
+[data-interval]: https://hackage.haskell.org/package/data-interval
+
+```haskell
+import Data.Interval (Interval)
+import qualified Data.Interval as IV
+
+fromRange :: Int -> Int -> Interval Int
+fromRange x len = IV.Finite x IV.<=..< IV.Finite (x + len)
+```
+
+The main type we will be using here is the `IntervalMap` type.  We will use it 
+to map intervals to deltas: if you fall inside the interval, your value will 
+update by `+ delta`.
+
+```haskell
+import Data.IntervalMap.Strict (IntervalMap)
+import qualified Data.IntervalMap.Strict as IVM
+
+-- | Takes in the (a, b, c) triples that the problem gives map chunks
+buildMap :: [(Int, Int, Int)] -> IntervalMap Int Int
+buildMap = IVM.fromList
+         . map (\(dest, src, len) -> fromRange src len, dest - src)
+```
+
+Now we can run it on a single point:
+
+```haskell
+convertSingle :: Int -> IntervalMap Int Int -> Int
+convertSingle x mp = case IVM.lookup x mp of
+  Nothing    -> x           -- the value is not in any known interval
+  Just delta -> x + delta   -- that interval has the given delta
+```
+
+So part 1 is simply finding the minimum after iterating `convertSingle` across 
+every range:
+
+```haskell
+day05a :: [IntervalMap Int Int] -> [Int] -> Int
+day05a imaps = minimum . map (\s0 -> foldl' convertSingle s0 imaps)
+```
+
+Part 2 is where it gets interesting.  We actually want to keep track of an 
+`IntervalSet` -- the set of all intervals that we have seeds at.  We need to 
+write a function `convertMany` that takes an `IntervalSet` and runs that 
+interval set through an `IntervalMap` appropriately.
+
+To do this, we find all of the "misses" (the intervals in the `IntervalSet` 
+that aren't mapped) and the "hits" (the intervals in the `IntervalSet` that do 
+exist in the map, shifted by the delta) and then recombine it:
+
+```haskell
+import Data.IntervalSet (IntervalSet)
+import qualified Data.IntervalSet as IVS
+
+convertMany :: IntervalMap Int Int -> IntervalSet Int -> IntervalSet Int
+convertMany mp xs = misses <> hits
+  where
+    -- dummy map corresponding to putting `()` at every interval in our
+    -- `IntervalSet`, needed because interval map functions require maps
+    tempMap :: IntervalMap Int ()
+    tempMap = IVM.fromList . map (,()) . IVS.toList $ xs
+
+    misses = IVM.keysSet $ tempMap `IVM.difference` mp
+    hits =
+      IVS.fromList
+        . map (\(iv, delta) -> IV.mapMonotonic (+ delta) iv)
+        . IVM.toList
+        $ IVM.intersectionWith const mp tempMap
+```
+
+And run it all together with:
+
+```haskell
+day05b :: IntervalSet Int -> [IntervalMap Int Int] -> IntervalSet Int
+day05b = foldl' convertMany
+```
+
+
+### Day 5 Benchmarks
+
+```
+>> Day 05a
+benchmarking...
+time                 17.13 μs   (16.83 μs .. 17.86 μs)
+                     0.997 R²   (0.994 R² .. 1.000 R²)
+mean                 16.87 μs   (16.80 μs .. 17.13 μs)
+std dev              421.7 ns   (78.33 ns .. 880.9 ns)
+variance introduced by outliers: 26% (moderately inflated)
+
+* parsing and formatting times excluded
+
+>> Day 05b
+benchmarking...
+time                 450.8 μs   (450.1 μs .. 451.6 μs)
+                     1.000 R²   (1.000 R² .. 1.000 R²)
+mean                 450.3 μs   (450.0 μs .. 450.6 μs)
+std dev              946.6 ns   (694.4 ns .. 1.270 μs)
 
 * parsing and formatting times excluded
 ```
