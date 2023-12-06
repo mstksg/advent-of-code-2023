@@ -34,17 +34,17 @@ convertSingle x = maybe x (x +) . IVM.lookup x
 fromRange :: Int -> Int -> Interval Int
 fromRange x len = IV.Finite x IV.<=..< IV.Finite (x + len)
 
-convertMany :: IntervalMap Int Int -> IntervalSet Int -> IntervalSet Int
-convertMany mp xs = misses <> hits
+convertMany :: IntervalSet Int -> IntervalMap Int Int -> IntervalSet Int
+convertMany xs mp = misses <> hits
   where
-    tempSet :: IntervalMap Int ()
-    tempSet = IVM.fromList . map (,()) . IVS.toList $ xs
-    misses = IVM.keysSet $ tempSet IVM.\\ mp
+    tempMap :: IntervalMap Int ()
+    tempMap = IVM.fromList . map (,()) . IVS.toList $ xs
+    misses = IVM.keysSet $ tempMap IVM.\\ mp
     hits =
       IVS.fromList
         . map (\(iv, delta) -> IV.mapMonotonic (+ delta) iv)
         . IVM.toList
-        $ IVM.intersectionWith const mp tempSet
+        $ IVM.intersectionWith const mp tempMap
 
 parseLine :: [String] -> Maybe ([Int], [IntervalMap Int Int])
 parseLine [] = Nothing
@@ -76,7 +76,7 @@ day05b =
       sShow = show,
       sSolve = \(s0, process) ->
         fromFinite . IV.lowerBound . IVS.span $
-          foldl' (flip convertMany) (IVS.fromList s0) process
+          foldl' convertMany (IVS.fromList s0) process
     }
   where
     pairUp = traverse (fmap (uncurry fromRange) . listTup) . chunksOf 2
