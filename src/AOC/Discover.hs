@@ -23,9 +23,6 @@ module AOC.Discover (
   , solSpecStr
   , solSpecStr_
   , charPart
-  , challengeName
-  , solverNFData
-  , deepInstance
   ) where
 
 import           AOC.Solver
@@ -36,30 +33,21 @@ import           Control.Monad
 import           Control.Monad.Trans.Class
 import           Control.Monad.Trans.Maybe
 import           Data.Bifunctor
-import           Data.Data
-import           Data.Foldable
 import           Data.Function
 import           Data.Map                               (Map)
 import           Data.Maybe
 import           Data.Traversable
 import           Data.Void
 import           GHC.Exts
-import           Language.Haskell.Exts                  as E
-import           Language.Haskell.Names
 import           Language.Haskell.TH                    as TH
 import           Language.Haskell.TH.Datatype
 import           Language.Haskell.TH.Syntax             (TExp(..))
 import           Prelude
-import           System.Directory
-import           System.FilePath
 import           Text.Printf
+import           Data.Set                               (Set)
 import qualified Data.List.NonEmpty                     as NE
-import qualified Distribution.Pretty as C
 import qualified Data.Map                               as M
-import qualified Distribution.PackageDescription        as C
-import qualified Distribution.PackageDescription.Parsec as C
-import qualified Distribution.Simple.Utils              as C
-import qualified Distribution.Verbosity                 as C
+import qualified Data.Set as S
 import qualified Text.Megaparsec                        as P
 import qualified Text.Megaparsec.Char                   as P
 import qualified Text.Megaparsec.Char.Lexer             as PL
@@ -102,99 +90,52 @@ instance IsString ChallengeSpec where
 type Parser = P.Parsec Void String
 
 -- | Template Haskell splice to produce a list of all named solutions in
--- a directory. Expects solutions as function names following the format
+-- scope. Expects solutions as function names following the format
 -- @dayDDp@, where @DD@ is a two-digit zero-added day, and @p@ is
 -- a lower-case letter corresponding to the part of the challenge.
 --
 -- See 'mkChallengeMap' for a description of usage.
-#if MIN_VERSION_template_haskell(2,17,0)
-solutionList :: FilePath -> Code Q [(Day, (Part, SomeSolution))]
-solutionList dir = Code $
-#else
-solutionList :: FilePath -> Q (TH.TExp [(Day, (Part, SomeSolution))])
-solutionList dir =
-#endif
-        fmap (TExp . ListE)
-      . traverse (fmap unType . specExp)
-    =<< runIO (getChallengeSpecs dir)
+solutionList :: Code Q [(Day, (Part, SomeSolution))]
+solutionList = Code $
+        fmap (TExp . ListE . catMaybes)
+      $ traverse (fmap (fmap unType) . specExp) (S.toList challengeSpecUniverse)
 
 -- | Meant to be called like:
 --
 -- @
--- mkChallengeMap $$(solutionList "src\/AOC\/Challenge")
+-- mkChallengeMap $$(solutionList)
 -- @
 mkChallengeMap :: [(Day, (Part, SomeSolution))] -> ChallengeMap
 mkChallengeMap = M.unionsWith M.union
                . map (uncurry M.singleton . second (uncurry M.singleton))
 
 
-specExp :: ChallengeSpec -> Q (TExp (Day, (Part, SomeSolution)))
+challengeSpecUniverse :: Set ChallengeSpec
+challengeSpecUniverse = S.delete (CS (mkDay_ 25) Part2) . S.fromList $
+    CS <$> [minBound .. maxBound] <*> [minBound .. maxBound]
+
+specExp :: ChallengeSpec -> Q (Maybe (TExp (Day, (Part, SomeSolution))))
 specExp s@(CS d p) = do
-    n <- lookupValueName (specName s)
-    con <- case n of
-      Nothing -> pure 'MkSomeSolWH
-      Just n' -> do
-        isNF <- solverNFData n'
-        pure $ if isNF
-                 then 'MkSomeSolNF
-                 else 'MkSomeSolWH
-    pure $ TExp $ tTupE
-      [ VarE 'mkDay_ `AppE` LitE (IntegerL (dayInt d))
-      , tTupE
-          [ ConE (partCon p)
-          , ConE con `AppE` VarE (mkName (specName s))
-          ]
-      ]
+    mn <- lookupValueName (specName s)
+    for mn \n -> do
+      isNF <- solverNFData n
+      let con
+            | isNF = 'MkSomeSolNF
+            | otherwise = 'MkSomeSolWH
+      pure $ TExp $ tTupE
+        [ VarE 'mkDay_ `AppE` LitE (IntegerL (dayInt d))
+        , tTupE
+            [ ConE (partCon p)
+            , ConE con `AppE` VarE (mkName (specName s))
+            ]
+        ]
   where
     partCon Part1 = 'Part1
     partCon Part2 = 'Part2
-#if MIN_VERSION_template_haskell(2,16,0)
     tTupE = TupE . fmap Just
-#else
-    tTupE = TupE
-#endif
 
 specName :: ChallengeSpec -> String
 specName (CS d p) = printf "day%02d%c" (dayInt d) (partChar p)
-
-getChallengeSpecs
-    :: FilePath                 -- ^ directory of modules
-    -> IO [ChallengeSpec]       -- ^ all challenge specs found
-getChallengeSpecs dir = do
-    exts   <- defaultExtensions
-    files  <- listDirectory dir
-    parsed <- forM files $ \f -> do
-      let mode = defaultParseMode { extensions    = exts
-                                  , fixities      = Just []
-                                  , parseFilename = f
-                                  }
-      res <- parseFileWithMode mode (dir </> f)
-      case res of
-        ParseOk x       -> pure x
-        ParseFailed l e -> fail $ printf "Failed parsing %s at %s: %s" f (show l) e
-    pure $ moduleSolutions parsed
-
-defaultExtensions :: IO [E.Extension]
-defaultExtensions = do
-    gpd <- C.readGenericPackageDescription C.silent =<< C.defaultPackageDesc C.silent
-    pure . map reExtension . foldMap (C.defaultExtensions . C.libBuildInfo) $ gpdLibraries gpd
-  where
-    gpdLibraries gpd =
-        Data.Foldable.toList (C.library (C.packageDescription gpd))
-     ++ foldMap Data.Foldable.toList (C.condLibrary gpd)
-     ++ foldMap (foldMap Data.Foldable.toList) (C.condSubLibraries gpd)
-    reExtension = parseExtension . C.prettyShow
-
-moduleSolutions :: (Data l, Eq l) => [Module l] -> [ChallengeSpec]
-moduleSolutions = (foldMap . foldMap) (maybeToList . isSolution)
-                . flip resolve M.empty
-
-
-isSolution :: Symbol -> Maybe ChallengeSpec
-isSolution s = do
-    Value _ (Ident _ n) <- pure s
-    Right c             <- pure $ P.runParser challengeName "" n
-    pure c
 
 challengeName :: Parser ChallengeSpec
 challengeName = do

@@ -52,8 +52,8 @@ common common-options
                      , groups
                      , hashable
                      , haskeline
-                     , haskell-names
-                     , haskell-src-exts
+                     -- , haskell-names
+                     -- , haskell-src-exts
                      , heredoc
                      , hpack
                      , lens

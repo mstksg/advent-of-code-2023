@@ -61,7 +61,7 @@ import qualified Data.Map         as M
 
 -- | A map of all challenges.
 challengeMap :: ChallengeMap
-challengeMap = mkChallengeMap $$(solutionList "src/AOC/Challenge")
+challengeMap = mkChallengeMap $$(solutionList)
 
 -- | Lookup up a solution from a 'ChallengeMap'
 lookupSolution :: ChallengeSpec -> Map Day (Map Part a) -> Maybe a
