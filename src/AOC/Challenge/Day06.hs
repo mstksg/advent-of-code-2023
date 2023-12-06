@@ -34,7 +34,7 @@ isqrt n
       where
         y = (x + n `div` x) `div` 2
 
-day06a :: _ :~> _
+day06a :: [(Int, Int)] :~> Int
 day06a =
   MkSol
     { sParse =
@@ -46,7 +46,7 @@ day06a =
       sSolve = noFail $ product . map (uncurry getWays)
     }
 
-day06b :: _ :~> _
+day06b :: (Int, Int) :~> Int
 day06b =
   MkSol
     { sParse = listTup <=< traverse (readMaybe . filter isDigit) . lines,
