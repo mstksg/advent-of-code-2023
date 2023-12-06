@@ -19,7 +19,7 @@
                 withHoogle = false;
                 tools = {
                   cabal = { };
-                  stack = "2.9.3.1";
+                  # stack = { };
                   hlint = { };
                   haskell-language-server = { };
                 };
