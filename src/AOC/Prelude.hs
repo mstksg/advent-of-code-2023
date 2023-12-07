@@ -41,7 +41,7 @@ import           Data.IntMap.NonEmpty      as P (NEIntMap)
 import           Data.IntSet               as P (IntSet)
 import           Data.IntSet.NonEmpty      as P (NEIntSet)
 import           Data.Kind                 as P
-import           Data.List                 as P (uncons, intersperse, intercalate, transpose, subsequences, permutations, scanl', unfoldr, stripPrefix, group, inits, tails, isPrefixOf, isSuffixOf, isInfixOf, isSubsequenceOf, zip4, zip5, zip6, zip7, zipWith4, zipWith5, zipWith6, zipWith7, unzip4, unzip5, unzip6, unzip7, groupBy, sortBy)
+import           Data.List                 as P (uncons, intersperse, intercalate, transpose, subsequences, permutations, scanl', unfoldr, stripPrefix, group, inits, tails, isPrefixOf, isSuffixOf, isInfixOf, isSubsequenceOf, zip4, zip5, zip6, zip7, zipWith4, zipWith5, zipWith6, zipWith7, unzip4, unzip5, unzip6, unzip7, groupBy, sortBy, sort, sortOn)
 import           Data.List.NonEmpty        as P (NonEmpty(..), nonEmpty)
 import           Data.List.Split           as P
 import           Data.Map                  as P (Map)
