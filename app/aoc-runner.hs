@@ -9,7 +9,6 @@ import           Control.Lens hiding  (argument)
 import           Control.Monad
 import           Control.Monad.Except
 import           Data.Char
-import           Data.Foldable
 import           Data.IORef
 import           Data.Maybe
 import           Options.Applicative

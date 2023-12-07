@@ -452,6 +452,6 @@ lineTo p0 p1 = [ p0 + t *^ step | t <- [1 .. gcf  - 1] ]
     gcf          = gcd dx dy
     step         = (`div` gcf) <$> d
 
-instance (Finitary a, KnownNat (Cardinality a), KnownNat (Cardinality a * Cardinality a)) => Finitary (V2 a)
-instance (Finitary a, KnownNat (Cardinality a), KnownNat (Cardinality a * (Cardinality a * Cardinality a))) => Finitary (V3 a)
-instance (Finitary a, KnownNat (Cardinality a), KnownNat ((Cardinality a * Cardinality a) * (Cardinality a * Cardinality a))) => Finitary (V4 a)
+instance (Finitary a, KnownNat (Cardinality a * Cardinality a)) => Finitary (V2 a)
+instance (Finitary a, KnownNat (Cardinality a * (Cardinality a * Cardinality a))) => Finitary (V3 a)
+instance (Finitary a, KnownNat ((Cardinality a * Cardinality a) * (Cardinality a * Cardinality a))) => Finitary (V4 a)

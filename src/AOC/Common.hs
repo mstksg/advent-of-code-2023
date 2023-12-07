@@ -183,7 +183,7 @@ import           Debug.Trace
 import           GHC.Generics                       (Generic)
 import           GHC.TypeNats
 import           Linear                             (V2(..), V3(..), V4(..), R1(..), R2(..), R3(..), R4(..), Additive(..))
-import           Numeric.Natural
+-- import           Numeric.Natural
 import qualified Control.Foldl                      as F
 import qualified Control.Monad.Combinators          as P
 import qualified Data.Finitary                      as F
@@ -1080,13 +1080,13 @@ unfoldedIterate _ f x = runIterate (N.induction1 start step :: Iterate n a)
     step :: Iterate m a -> Iterate ('N.S m) a
     step = coerce f
 
-instance (Functor v, FunctorWithIndex Int v) => FunctorWithIndex (Finite n) (SVG.Vector v n) where
+instance (FunctorWithIndex Int v) => FunctorWithIndex (Finite n) (SVG.Vector v n) where
     imap f (SVG.Vector xs) = SVG.Vector $ imap (f . Finite . fromIntegral) xs
 
-instance (Foldable v, FoldableWithIndex Int v) => FoldableWithIndex (Finite n) (SVG.Vector v n) where
+instance (FoldableWithIndex Int v) => FoldableWithIndex (Finite n) (SVG.Vector v n) where
     ifoldMap f (SVG.Vector xs) = ifoldMap (f . Finite . fromIntegral) xs
 
-instance (Traversable v, TraversableWithIndex Int v) => TraversableWithIndex (Finite n) (SVG.Vector v n) where
+instance (TraversableWithIndex Int v) => TraversableWithIndex (Finite n) (SVG.Vector v n) where
     itraverse f (SVG.Vector xs) = SVG.Vector <$> itraverse (f . Finite . fromIntegral) xs
 
 instance (Functor v, KnownNat n, forall a. VG.Vector v a) => Additive (SVG.Vector v n) where
