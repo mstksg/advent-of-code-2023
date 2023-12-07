@@ -57,7 +57,7 @@ handType cs = maybe id addJoker numJokers $ sortOn Down (M.elems fs')
         freqs cs
     addJoker n = \case
       [] -> [n]
-      x:xs -> (x+n):xs
+      x : xs -> (x + n) : xs
 
 day07 :: Map Char Card -> [([Card], Int)] :~> Int
 day07 parseCard =
