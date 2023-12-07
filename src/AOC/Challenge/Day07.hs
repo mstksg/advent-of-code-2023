@@ -88,8 +88,7 @@ day07 parseCard =
         noFail $
           sum
             . zipWith (\i (_, b) -> i * b) [1 ..]
-            . sortOn fst
-            . (map . first) (\q -> (handType q, q))
+            . sortOn (\(q, _) -> (handType q, q))
     }
 
 day07a :: [([Card], Int)] :~> Int
