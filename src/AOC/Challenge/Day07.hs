@@ -16,25 +16,13 @@ where
 
 import AOC.Common (freqs, listTup)
 import AOC.Solver (noFail, (:~>) (..))
-import Control.Lens (over, _head)
 import Control.Monad ((<=<))
-import Data.Bifunctor (first)
 import Data.Bitraversable (bitraverse)
 import Data.List (sortOn)
 import Data.Map (Map)
 import qualified Data.Map as M
 import Data.Ord (Down (..))
 import Text.Read (readMaybe)
-
-data HandType
-  = HighCard
-  | OnePair
-  | TwoPair
-  | ThreeOfAKind
-  | FullHouse
-  | FourOfAKind
-  | FiveOfAKind
-  deriving stock (Eq, Ord, Show)
 
 data Card
   = Joker
@@ -61,21 +49,15 @@ part1Cards =
 part2Cards :: Map Char Card
 part2Cards = M.insert 'J' Joker part1Cards
 
-handType :: [Card] -> HandType
-handType cs = case addJokers $ sortOn Down (M.elems fs') of
-  [] -> FiveOfAKind
-  5 : _ -> FiveOfAKind
-  4 : _ -> FourOfAKind
-  3 : 2 : _ -> FullHouse
-  3 : 1 : _ -> ThreeOfAKind
-  2 : 2 : _ -> TwoPair
-  2 : _ -> OnePair
-  _ -> HighCard
+handType :: [Card] -> [Int]
+handType cs = maybe id addJoker numJokers $ sortOn Down (M.elems fs')
   where
     (numJokers, fs') =
       M.alterF (,Nothing) Joker $
         freqs cs
-    addJokers = maybe id (\n -> over _head (+ n)) numJokers
+    addJoker n = \case
+      [] -> [n]
+      x:xs -> (x+n):xs
 
 day07 :: Map Char Card -> [([Card], Int)] :~> Int
 day07 parseCard =
