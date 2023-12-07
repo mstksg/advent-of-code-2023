@@ -22,8 +22,8 @@
 --     will recommend what should go in place of the underscores.
 
 module AOC.Challenge.Day07 (
-    -- day07a
-  -- , day07b
+    day07a
+  , day07b
   ) where
 
 import           AOC.Prelude
@@ -42,19 +42,66 @@ import qualified Data.Text                      as T
 import qualified Data.Vector                    as V
 import qualified Linear                         as L
 import qualified Text.Megaparsec                as P
+import Data.Bitraversable
 import qualified Text.Megaparsec.Char           as P
 import qualified Text.Megaparsec.Char.Lexer     as PP
 
+-- 32T3K 765
+-- T55J5 684
+-- KK677 28
+-- KTJJT 220
+-- QQQJA 483
+-- >>> 6440
+
 day07a :: _ :~> _
 day07a = MkSol
-    { sParse = Just . lines
+    -- { sParse = traverse (_ <=< listTup . words) . lines
+    { sParse = traverse (bitraverse pure (readMaybe @Int) <=< listTup . words) . lines
     , sShow  = show
-    , sSolve = Just
+    , sSolve = noFail $
+          sum . map (uncurry (*)) . zip [1..] . map snd . sortBy (comparing fst)
+          . map (first (\q -> (categorize . map fst . freqList $ q, map qValue q)))
     }
+  where
+    qValue q = M.findWithDefault undefined q $ M.fromList $
+      flip zip [0..] . reverse $ ['A', 'K', 'Q', 'J', 'T'] ++ map intToDigit [9,8.. 2]
+    categorize [5] = 7
+    categorize [4,1] = 6
+    categorize [3,2] = 5
+    categorize [3,1,1] = 4
+    categorize [2,2,1] = 3
+    categorize [2,1,1,1] = 2
+    categorize [1,1,1,1,1] = 1
+    categorize _ = undefined
 
 day07b :: _ :~> _
 day07b = MkSol
-    { sParse = sParse day07a
+    { sParse = traverse (bitraverse pure (readMaybe @Int) <=< listTup . words) . lines
     , sShow  = show
-    , sSolve = Just
+    , sSolve = noFail $
+          sum . map (uncurry (*)) . zip [1..] . map snd . sortBy (comparing fst)
+          . map (first (\q -> (categorize (map fst . freqList $ filter (/= 'J') q), map qValue q)))
     }
+  where
+    qValue q = M.findWithDefault undefined q $ M.fromList $
+      flip zip [0..] . reverse $ ['A', 'K', 'Q', 'T'] ++ map intToDigit [9,8.. 2] ++ ['J']
+    categorize [5] = 7
+    categorize [4,1] = 6
+    categorize [3,2] = 5
+    categorize [3,1,1] = 4
+    categorize [2,2,1] = 3
+    categorize [2,1,1,1] = 2
+    categorize [1,1,1,1,1] = 1
+    categorize [4] = 7
+    categorize [3,1] = 6
+    categorize [2,2] = 5
+    categorize [2,1,1] = 4
+    categorize [1,1,1,1] = 2
+    categorize [3] = 7
+    categorize [2,1] = 6
+    categorize [1,1,1] = 4
+    categorize [2] = 7
+    categorize [1,1] = 6
+    categorize [1] = 7
+    categorize [] = 7
+    categorize _ = undefined
