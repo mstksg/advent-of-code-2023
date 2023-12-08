@@ -15,23 +15,14 @@ module AOC.Challenge.Day08
   )
 where
 
-import AOC.Prelude
-import qualified Data.Graph.Inductive as G
-import qualified Data.IntMap as IM
-import qualified Data.IntSet as IS
-import qualified Data.List.NonEmpty as NE
-import qualified Data.List.PointedList as PL
-import qualified Data.List.PointedList.Circular as PLC
+import AOC.Common (LCM(..))
+import AOC.Solver ((:~>)(..), noFail)
+import Data.Char (isAlphaNum)
+import Data.List (foldl')
+import Data.Map (Map)
+import Data.Sequence (Seq)
 import qualified Data.Map as M
-import qualified Data.OrdPSQ as PSQ
 import qualified Data.Sequence as Seq
-import qualified Data.Set as S
-import qualified Data.Text as T
-import qualified Data.Vector as V
-import qualified Linear as L
-import qualified Text.Megaparsec as P
-import qualified Text.Megaparsec.Char as P
-import qualified Text.Megaparsec.Char.Lexer as PP
 
 parseMe :: [String] -> Maybe ([Bool], [(String, String, String)])
 parseMe = \case
@@ -44,33 +35,31 @@ parseMe = \case
      in Just (path, mp)
   _ -> Nothing
 
-stateMachine :: [Bool] -> [(String, String, String)] -> Map String (Seq (String, Int))
+stateMachine :: [Bool] -> [(String, String, String)] -> Map String (Seq String)
 stateMachine lrs xs =
   M.fromList
-    [ (a, first (\dir -> if dir then c else b) <$> dirMap)
+    [ (a, (\dir -> if dir then c else b) <$> dirMap)
       | (a, b, c) <- xs
     ]
   where
-    iLrs = zip lrs [0 ..]
-    dirMap :: Seq (Bool, Int)
-    dirMap =
-      Seq.fromList $
-        zip
-          (fst <$> iLrs)
-          (drop 1 (cycle (snd <$> iLrs)))
+    dirMap :: Seq Bool
+    dirMap = Seq.fromList lrs
 
 lengthToCond ::
   (String -> Bool) ->
-  Map String (Seq (String, Int)) ->
+  Map String (Seq String) ->
   Map String Int
 lengthToCond cond mp = (`Seq.index` 0) <$> res
   where
-    res = flip (fmap . fmap) mp \(str, b) ->
+    res = flip (fmap . Seq.mapWithIndex) mp \i str ->
       if cond str
         then 1
-        else 1 + (res M.! str) `Seq.index` b
+        else 1 + (res M.! str) `ixMod` (i + 1)
 
-day08a :: ([Bool], [(String,String,String)]) :~> Int
+ixMod :: Seq a -> Int -> a
+ixMod xs i = xs `Seq.index` (i `mod` Seq.length xs)
+
+day08a :: ([Bool], [(String, String, String)]) :~> Int
 day08a =
   MkSol
     { sParse = parseMe . lines,
@@ -80,14 +69,14 @@ day08a =
          in lengthToCond (== "ZZZ") sm M.! "AAA"
     }
 
-day08b :: ([Bool], [(String,String,String)]) :~> Int
+day08b :: ([Bool], [(String, String, String)]) :~> Int
 day08b =
   MkSol
     { sParse = parseMe . lines,
       sShow = show,
       sSolve = noFail $ \(xs, mp) ->
         let sm = stateMachine xs mp
-         in foldr lcm 1
-              . M.filterWithKey (\k _ -> last k == 'A')
+         in getLCM
+              . M.foldMapWithKey (\k i -> if last k == 'A' then LCM i else mempty)
               $ lengthToCond (\k -> last k == 'Z') sm
     }

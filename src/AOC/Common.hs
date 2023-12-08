@@ -139,6 +139,8 @@ module AOC.Common (
   -- * Graph
   , Graph
   , toFGL
+  -- * Numeric
+  , LCM(..)
   -- * Recursion Schemes
   , anaM
 #if !MIN_VERSION_recursion_schemes(5,2,0)
@@ -1106,6 +1108,14 @@ instance FoldableWithIndex k (NEMap k) where
     ifoldMap = NEM.foldMapWithKey
 instance TraversableWithIndex k (NEMap k) where
     itraverse = NEM.traverseWithKey
+
+newtype LCM a = LCM {getLCM :: a}
+
+instance (Integral a) => Monoid (LCM a) where
+  mempty = LCM 1
+
+instance (Integral a) => Semigroup (LCM a) where
+  LCM x <> LCM y = LCM (lcm x y)
 
 #if !MIN_VERSION_recursion_schemes(5,2,0)
 data TreeF a b = NodeF a (ForestF a b)
