@@ -45,16 +45,16 @@ stateMachine lrs xs =
     dirMap :: Seq Bool
     dirMap = Seq.fromList lrs
 
-lengthToCond ::
+pathToCond ::
   (String -> Bool) ->
   Map String (Seq String) ->
-  Map String Int
-lengthToCond cond mp = (`Seq.index` 0) <$> res
+  Map String [String]
+pathToCond cond mp = (`Seq.index` 0) <$> res
   where
     res = flip (fmap . Seq.mapWithIndex) mp \i str ->
-      if cond str
-        then 1
-        else 1 + (res M.! str) `ixMod` (i + 1)
+      str : if cond str
+        then []
+        else (res M.! str) `ixMod` (i + 1)
 
 ixMod :: Seq a -> Int -> a
 ixMod xs i = xs `Seq.index` (i `mod` Seq.length xs)
@@ -64,9 +64,9 @@ day08a =
   MkSol
     { sParse = parseMe . lines,
       sShow = show,
-      sSolve = noFail $ \(xs, mp) ->
+      sSolve = noFail \(xs, mp) ->
         let sm = stateMachine xs mp
-         in lengthToCond (== "ZZZ") sm M.! "AAA"
+         in length $ pathToCond (== "ZZZ") sm M.! "AAA"
     }
 
 day08b :: ([Bool], [(String, String, String)]) :~> Int
@@ -74,9 +74,9 @@ day08b =
   MkSol
     { sParse = parseMe . lines,
       sShow = show,
-      sSolve = noFail $ \(xs, mp) ->
+      sSolve = noFail \(xs, mp) ->
         let sm = stateMachine xs mp
          in getLCM
-              . M.foldMapWithKey (\k i -> if last k == 'A' then LCM i else mempty)
-              $ lengthToCond (\k -> last k == 'Z') sm
+              . M.foldMapWithKey (\k i -> if last k == 'A' then LCM (length i) else mempty)
+              $ pathToCond (\k -> last k == 'Z') sm
     }
