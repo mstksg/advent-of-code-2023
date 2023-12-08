@@ -34,7 +34,7 @@ module AOC.Run.Load (
   , printTests
   ) where
 
-import           AOC.Challenge
+import           AOC.Discover
 import           AOC.Util
 import           AOC.Util.DynoMap
 import           Advent

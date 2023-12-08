@@ -35,7 +35,7 @@ module AOC.Run.Interactive (
   , mkSpec
   ) where
 
-import           AOC.Challenge
+import           AOC.Disover
 import           AOC.Run
 import           AOC.Run.Config
 import           AOC.Run.Load

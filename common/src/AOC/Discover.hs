@@ -19,6 +19,7 @@ module AOC.Discover (
   , solutionList
   , ChallengeMap
   , ChallengeSpec(..)
+  , lookupSolution
   , solSpec
   , solSpecStr
   , solSpecStr_
@@ -68,6 +69,10 @@ data ChallengeSpec = CS { _csDay  :: Day
 
 -- | A map of days to parts to solutions.
 type ChallengeMap = Map Day (Map Part SomeSolution)
+
+-- | Lookup up a solution from a 'ChallengeMap'
+lookupSolution :: ChallengeSpec -> Map Day (Map Part a) -> Maybe a
+lookupSolution CS{..} = M.lookup _csPart <=< M.lookup _csDay
 
 -- | Get a 'ChallengeSpec' from a given reified solution (name).
 --

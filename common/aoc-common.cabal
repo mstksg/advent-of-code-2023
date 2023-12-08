@@ -1,13 +1,14 @@
 cabal-version:  2.4
-name:           aoc2023
+name:           aoc-common
+
 version:        0.1.0.0
 synopsis:       Development environment for Advent of Code challenges
 description:    Scaffolding for an integrated development environment for Advent of Code
                 challenges.  Includes auto-runner, prompt displays and countdowns, and
                 integrated submissions.
 category:       Web
-homepage:       https://github.com/mstksg/advent-of-code-dev#readme
-bug-reports:    https://github.com/mstksg/advent-of-code-dev/issues
+homepage:       https://github.com/mstksg/advent-of-code#readme
+bug-reports:    https://github.com/mstksg/advent-of-code/issues
 author:         Justin Le
 maintainer:     justin@jle.im
 copyright:      (c) Justin Le 2021
@@ -145,93 +146,93 @@ common common-options
 library
   import:              common-options
   exposed-modules:
-      AOC
-      AOC.Challenge
-      AOC.Challenge.Day01
-      AOC.Challenge.Day02
-      AOC.Challenge.Day03
-      AOC.Challenge.Day04
-      AOC.Challenge.Day05
-      AOC.Challenge.Day06
-      AOC.Challenge.Day07
-      AOC.Challenge.Day08
-      AOC.Challenge.Day09
-      AOC.Challenge.Day10
-      AOC.Challenge.Day11
-      AOC.Challenge.Day12
-      AOC.Challenge.Day13
-      AOC.Challenge.Day14
-      AOC.Challenge.Day15
-      AOC.Challenge.Day16
-      AOC.Challenge.Day17
-      AOC.Challenge.Day18
-      AOC.Challenge.Day19
-      AOC.Challenge.Day20
-      AOC.Challenge.Day21
-      AOC.Challenge.Day22
-      AOC.Challenge.Day23
-      AOC.Challenge.Day24
-      AOC.Challenge.Day25
+      -- AOC
+      -- AOC.Challenge
+      -- AOC.Challenge.Day01
+      -- AOC.Challenge.Day02
+      -- AOC.Challenge.Day03
+      -- AOC.Challenge.Day04
+      -- AOC.Challenge.Day05
+      -- AOC.Challenge.Day06
+      -- AOC.Challenge.Day07
+      -- AOC.Challenge.Day08
+      -- AOC.Challenge.Day09
+      -- AOC.Challenge.Day10
+      -- AOC.Challenge.Day11
+      -- AOC.Challenge.Day12
+      -- AOC.Challenge.Day13
+      -- AOC.Challenge.Day14
+      -- AOC.Challenge.Day15
+      -- AOC.Challenge.Day16
+      -- AOC.Challenge.Day17
+      -- AOC.Challenge.Day18
+      -- AOC.Challenge.Day19
+      -- AOC.Challenge.Day20
+      -- AOC.Challenge.Day21
+      -- AOC.Challenge.Day22
+      -- AOC.Challenge.Day23
+      -- AOC.Challenge.Day24
+      -- AOC.Challenge.Day25
       AOC.Common
       AOC.Common.FinitarySet
       AOC.Common.Point
       AOC.Common.Search
       AOC.Discover
       AOC.Prelude
-      AOC.Run
-      AOC.Run.Config
-      AOC.Run.Interactive
-      AOC.Run.Load
+      -- AOC.Run
+      -- AOC.Run.Config
+      -- AOC.Run.Interactive
+      -- AOC.Run.Load
       AOC.Solver
       AOC.Util
       AOC.Util.DynoMap
   other-modules:
-      Paths_aoc2023
+      Paths_aoc_common
   hs-source-dirs:
       src
   other-modules:
-      Paths_aoc2023
+      Paths_aoc_common
 
-executable aoc2023
-  import: common-options
-  main-is: aoc-runner.hs
-  hs-source-dirs:
-      app
-  build-depends:
-      ansi-terminal
-    , aoc2023
-    , base >=4.7 && <5
-    , containers
-    , deepseq
-    , finite-typelits
-    , microlens
-    , mtl
-    , optparse-applicative
-  default-language: Haskell2010
-  ghc-options: -threaded -rtsopts -with-rtsopts=-N
+-- executable aoc2023
+--   import: common-options
+--   main-is: aoc-runner.hs
+--   hs-source-dirs:
+--       app
+--   build-depends:
+--       ansi-terminal
+--     , aoc2023
+--     , base >=4.7 && <5
+--     , containers
+--     , deepseq
+--     , finite-typelits
+--     , microlens
+--     , mtl
+--     , optparse-applicative
+--   default-language: Haskell2010
+--   ghc-options: -threaded -rtsopts -with-rtsopts=-N
 
-test-suite aoc2023-test
-  import: common-options
-  type: exitcode-stdio-1.0
-  main-is: Spec.hs
-  hs-source-dirs:
-      test
-  ghc-options: -threaded -rtsopts -with-rtsopts=-N
-  build-depends:
-      ansi-terminal
-    , aoc2023
-    , base >=4.7 && <5
-    , mtl
-  default-language: Haskell2010
+-- test-suite aoc2023-test
+--   import: common-options
+--   type: exitcode-stdio-1.0
+--   main-is: Spec.hs
+--   hs-source-dirs:
+--       test
+--   ghc-options: -threaded -rtsopts -with-rtsopts=-N
+--   build-depends:
+--       ansi-terminal
+--     , aoc2023
+--     , base >=4.7 && <5
+--     , mtl
+--   default-language: Haskell2010
 
-benchmark aoc2023-bench
-  type: exitcode-stdio-1.0
-  main-is: Bench.hs
-  hs-source-dirs:
-      bench
-  ghc-options: -threaded -rtsopts -with-rtsopts=-N
-  build-depends:
-      aoc2023
-    , base >=4.7 && <5
-    , mtl
-  default-language: Haskell2010
+-- benchmark aoc2023-bench
+--   type: exitcode-stdio-1.0
+--   main-is: Bench.hs
+--   hs-source-dirs:
+--       bench
+--   ghc-options: -threaded -rtsopts -with-rtsopts=-N
+--   build-depends:
+--       aoc2023
+--     , base >=4.7 && <5
+--     , mtl
+--   default-language: Haskell2010

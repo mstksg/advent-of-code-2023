@@ -31,7 +31,7 @@ module AOC.Run (
   , withColor
   ) where
 
-import           AOC.Challenge
+import           AOC.Discover
 import           AOC.Run.Config
 import           AOC.Run.Load
 import           AOC.Solver
