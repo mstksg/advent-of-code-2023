@@ -22,8 +22,8 @@
 --     will recommend what should go in place of the underscores.
 
 module AOC.Challenge.Day08 (
-    -- day08a
-  -- , day08b
+    day08a
+  , day08b
   ) where
 
 import           AOC.Prelude
@@ -45,16 +45,55 @@ import qualified Text.Megaparsec                as P
 import qualified Text.Megaparsec.Char           as P
 import qualified Text.Megaparsec.Char.Lexer     as PP
 
+-- LLRRRLLRLRRRLLRLRLRLRLRRRLRRLRRLRLLLRRLLRRLRRLRRLRRRLLLRRLRLRRRLRRRLRLRRLRRRLRLRRRLRLRLLLRLRRLRLRRLRRRLRLRRRLRRRLRRRLRRRLRLRRRLRRRLRLLRRLRLRLRRRLRRLRRRLRRRLRRRLRRRLLLLRRLLRLRRLRRLRRRLRRRLLLRRLRRLRLRRLRRRLRRLRLRRRLRLRRLLRLLRRLRLRRRLRRLRRLRLRRLLLRRRLRLRRRLRLRLLRLRLRRRLRLRLRRRLRRLRRLRRRLRRLLRRRR
+
+-- VTM = (VPB, NKT)
+-- LHN = (DLF, GQV)
+
+parseMe :: [String] -> ([Bool], Map String (String, String))
+parseMe (x:_:xs) = (map (== 'R') x, M.fromList$
+    [ (a, (filter isAlphaNum b, filter isAlphaNum c)) | [a,"=",b,c] <- words <$> xs]
+    )
+
 day08a :: _ :~> _
 day08a = MkSol
-    { sParse = Just . lines
+    { sParse = noFail $
+        parseMe . lines
     , sShow  = show
-    , sSolve = Just
+    , sSolve = noFail $ \(xs, mp) ->
+        subtract 1 . length $ iterateMaybe (\(s,r:rs) ->
+            guard (s /= "ZZZ") $>
+                if r
+                  then (snd $ mp M.! s, rs)
+                  else (fst $ mp M.! s, rs)
+            )
+          ("AAA", cycle xs)
     }
 
 day08b :: _ :~> _
 day08b = MkSol
     { sParse = sParse day08a
     , sShow  = show
-    , sSolve = Just
+    , sSolve = noFail $ \(xs, mp) ->
+
+        let cycleLengths = 
+              [ subtract 1 . length $ iterateMaybe (\(s,r:rs) ->
+                  guard (last s /= 'Z') $>
+                      if r
+                        then (snd $ mp M.! s, rs)
+                        else (fst $ mp M.! s, rs)
+                  )
+                (s0, cycle xs)
+                | s0 <- filter ((== 'A') . last) $ M.keys mp
+              ]
+        in  foldr lcm 1 cycleLengths
+        -- subtract 1 . length $ iterateMaybe (\(ss,r:rs) ->
+        --   guard (not $ all ((== 'Z') . last) ss) $>
+        --       (ss <&> \s ->
+        --           if r
+        --             then (snd $ mp M.! s)
+        --             else (fst $ mp M.! s)
+        --       , rs)
+        --     )
+        --   (filter ((== 'A') . last) (M.keys mp), cycle xs)
     }
