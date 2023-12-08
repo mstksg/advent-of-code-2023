@@ -15,13 +15,13 @@ module AOC.Challenge.Day08
   )
 where
 
-import AOC.Common (LCM(..))
-import AOC.Solver ((:~>)(..), noFail)
+import AOC.Common (LCM (..))
+import AOC.Solver (noFail, (:~>) (..))
 import Data.Char (isAlphaNum)
 import Data.List (foldl')
 import Data.Map (Map)
-import Data.Sequence (Seq)
 import qualified Data.Map as M
+import Data.Sequence (Seq)
 import qualified Data.Sequence as Seq
 
 parseMe :: [String] -> Maybe ([Bool], [(String, String, String)])
