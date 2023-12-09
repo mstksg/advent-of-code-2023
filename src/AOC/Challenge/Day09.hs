@@ -19,8 +19,8 @@ import Data.List.NonEmpty (NonEmpty (..))
 import qualified Data.List.NonEmpty as NE
 import Text.Read (readMaybe)
 
-stepSeries :: NonEmpty Int -> Int
-stepSeries = sum . unfoldr go . NE.reverse
+stepSeriesBack :: NonEmpty Int -> Int
+stepSeriesBack = sum . unfoldr go
   where
     go (x :| xs) = (x,) <$> NE.nonEmpty (zipWith (-) (x : xs) xs)
 
@@ -33,7 +33,7 @@ day09a =
       sShow = show,
       sSolve =
         noFail $
-          sum . map stepSeries
+          sum . map (stepSeriesBack . NE.reverse)
     }
 
 day09b :: [NonEmpty Int] :~> Int
@@ -45,5 +45,5 @@ day09b =
       sShow = show,
       sSolve =
         noFail $
-          sum . map (stepSeries . NE.reverse)
+          sum . map stepSeriesBack
     }
