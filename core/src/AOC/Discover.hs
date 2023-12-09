@@ -62,24 +62,17 @@ checkIfNFData = True
 
 -- | A specification for a specific challenge.  Should consist of a day and
 -- a lowercase character.
-data ChallengeSpec = CS { _csYear :: Integer
-                        , _csDay  :: Day
+data ChallengeSpec = CS { _csDay  :: Day
                         , _csPart :: Part
                         }
   deriving stock (Show, Eq, Ord)
 
--- | The magic: implementers can register solutions.
-class HasSolution (cs :: ChallengeSpec) where
-    -- | Avoid using singletons
-    autoChallengeSpec :: ChallengeSpec
-    autoSolution :: SomeSolution
-
 -- | A map of days to parts to solutions.
-type ChallengeMap = Map Integer (Map Day (Map Part SomeSolution))
+type ChallengeMap = Map Day (Map Part SomeSolution)
 
 -- | Lookup up a solution from a 'ChallengeMap'
-lookupSolution :: ChallengeSpec -> Map Integer (Map Day (Map Part a)) -> Maybe a
-lookupSolution CS{..} = M.lookup _csPart <=< M.lookup _csDay <=< M.lookup _csYear
+lookupSolution :: ChallengeSpec -> Map Day (Map Part a) -> Maybe a
+lookupSolution CS{..} = M.lookup _csPart <=< M.lookup _csDay
 
 -- | Get a 'ChallengeSpec' from a given reified solution (name).
 --
@@ -87,14 +80,14 @@ lookupSolution CS{..} = M.lookup _csPart <=< M.lookup _csDay <=< M.lookup _csYea
 -- solSpec \'day02a == CS { _csDay = 1, _csPart = 'a' }
 -- @
 --
-solSpec :: Integer -> TH.Name -> ChallengeSpec
-solSpec y = solSpecStr_ y . nameBase
+solSpec :: TH.Name -> ChallengeSpec
+solSpec = solSpecStr_ . nameBase
 
-solSpecStr :: Integer -> String -> Either (P.ParseErrorBundle String Void) ChallengeSpec
-solSpecStr y = P.runParser (challengeName y) ""
+solSpecStr :: String -> Either (P.ParseErrorBundle String Void) ChallengeSpec
+solSpecStr = P.runParser challengeName ""
 
-solSpecStr_ :: Integer -> String -> ChallengeSpec
-solSpecStr_ y = either (error . P.errorBundlePretty) id . solSpecStr y
+solSpecStr_ :: String -> ChallengeSpec
+solSpecStr_ = either (error . P.errorBundlePretty) id . solSpecStr
 
 type Parser = P.Parsec Void String
 
@@ -104,28 +97,27 @@ type Parser = P.Parsec Void String
 -- a lower-case letter corresponding to the part of the challenge.
 --
 -- See 'mkChallengeMap' for a description of usage.
-solutionList :: Integer -> Code Q [(Day, (Part, SomeSolution))]
-solutionList y = Code $
+solutionList :: Code Q [(Day, (Part, SomeSolution))]
+solutionList = Code $
         fmap (TExp . ListE . catMaybes)
-      $ traverse (fmap (fmap unType) . specExp) (S.toList (challengeSpecUniverse y))
+      $ traverse (fmap (fmap unType) . specExp) (S.toList challengeSpecUniverse)
 
 -- | Meant to be called like:
 --
 -- @
 -- mkChallengeMap $$(solutionList)
 -- @
-mkChallengeMap :: Integer -> [(Day, (Part, SomeSolution))] -> ChallengeMap
-mkChallengeMap y = M.singleton y
-                 . M.unionsWith M.union
-                 . map (uncurry M.singleton . second (uncurry M.singleton))
+mkChallengeMap :: [(Day, (Part, SomeSolution))] -> ChallengeMap
+mkChallengeMap = M.unionsWith M.union
+               . map (uncurry M.singleton . second (uncurry M.singleton))
 
-challengeSpecUniverse :: Integer -> Set ChallengeSpec
-challengeSpecUniverse y = S.delete (CS y (mkDay_ 25) Part2) . S.fromList $
-    CS y <$> [minBound .. maxBound] <*> [minBound .. maxBound]
+challengeSpecUniverse :: Set ChallengeSpec
+challengeSpecUniverse = S.delete (CS (mkDay_ 25) Part2) . S.fromList $
+    CS <$> [minBound .. maxBound] <*> [minBound .. maxBound]
 
 -- | Looks up the name in scope
 specExp :: ChallengeSpec -> Q (Maybe (TExp (Day, (Part, SomeSolution))))
-specExp s@(CS _ d p) = do
+specExp s@(CS d p) = do
     mn <- lookupValueName (specName s)
     for mn \n -> do
       isNF <- solverNFData n
@@ -145,10 +137,10 @@ specExp s@(CS _ d p) = do
     tTupE = TupE . fmap Just
 
 specName :: ChallengeSpec -> String
-specName (CS _ d p) = printf "day%02d%c" (dayInt d) (partChar p)
+specName (CS d p) = printf "day%02d%c" (dayInt d) (partChar p)
 
-challengeName :: Integer -> Parser ChallengeSpec
-challengeName y = do
+challengeName :: Parser ChallengeSpec
+challengeName = do
     _    <- P.string "day"
     dInt <- PL.decimal
     dFin <- maybe (fail $ "Day not in range: " ++ show dInt) pure $
@@ -156,7 +148,7 @@ challengeName y = do
     c    <- P.lowerChar
     p    <- maybe (fail $ printf "Part not parsed: %c" c) pure $
                 charPart c
-    pure $ CS y dFin p
+    pure $ CS dFin p
 
 -- | Parse a 'Char' into a 'Part'
 charPart :: Char -> Maybe Part

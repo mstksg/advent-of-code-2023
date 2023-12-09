@@ -30,14 +30,12 @@ import qualified Data.Yaml         as Y
 -- | Configuration for auto-runner.
 data Config = Cfg
     { _cfgSession :: Maybe String     -- ^ Default: 'Nothing'
-    , _cfgYear    :: Integer          -- ^ Default: 2015
     }
   deriving stock (Generic)
 
 -- | No session key, and 2015.
 instance Default Config where
     def = Cfg { _cfgSession = Nothing
-              , _cfgYear    = 2015
               }
 
 -- | Default math to find a configuration file.

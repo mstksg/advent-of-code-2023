@@ -216,7 +216,7 @@ mainView challengeMap Cfg{..} MVO{..} = do
       pure pmpt
   where
     waitFunc d
-      | _mvoWait  = countdownConsole _cfgYear d . (liftIO (threadDelay 500000) *>)
+      | _mvoWait  = countdownConsole yr d . (liftIO (threadDelay 500000) *>)
       | otherwise = id
     -- singleTest = case _mvoSpec of
     --   TSAll        -> Nothing
@@ -247,13 +247,14 @@ mainSubmit_
     :: (MonadIO m, MonadError [String] m)
     => SomeSolution
     -> Config
+    -> Integer
     -> ChallengeSpec
     -> MainSubmitOpts
     -> m (Text, SubmitRes)
-mainSubmit_ sol Cfg{..} cs@CS{..} MSO{..} = do
+mainSubmit_ sol Cfg{..} yr cs@CS{..} MSO{..} = do
     cd@CD{..} <- liftIO $ challengeData _cfgSession cs
     inp       <- liftEither . first ("[PROMPT ERROR]":) $ _cdInput
-    opts      <- defaultAoCOpts _cfgYear <$>
+    opts      <- defaultAoCOpts yr <$>
                     maybeToEither ["ERROR: Session Key Required to Submit"]
                       _cfgSession
 
@@ -292,7 +293,7 @@ mainSubmit_ sol Cfg{..} cs@CS{..} MSO{..} = do
       appendFile _cpLog $ printf logFmt (show zt) res (showSubmitRes status) resp resp'
     pure output
   where
-    CP{..} = challengePaths cs
+    CP{..} = challengePaths yr cs
     formatResp = T.unpack . T.intercalate "\n" . map ("> " <>)
     logFmt = unlines [ "[%s]"
                      , "Submission: %s"
@@ -331,21 +332,22 @@ displayStatus = \case
 
 runAll
     :: Maybe String                         -- ^ session key
+    -> Integer
     -> Bool                                 -- ^ run and lock answer
     -> (ChallengeSpec -> IO (Maybe String))   -- ^ replacements
     -> ChallengeSet SomeSolution
     -> (SomeSolution -> Maybe String -> ChallengeData -> IO a)  -- ^ callback. given solution, "replacement" input, and data
     -> IO (ChallengeSet a)
-runAll sess lock rep cm f = flip M.traverseWithKey cm $ \cs@(CS yr d p) c -> do
-    let CP{..} = challengePaths cs
+runAll sess yr lock rep cm f = flip M.traverseWithKey cm $ \cs@(CS d p) c -> do
+    let CP{..} = challengePaths yr cs
     inp0 <- rep cs
     withColor ANSI.Dull ANSI.Blue $
       printf ">> Day %02d%c\n" (dayInt d) (partChar p)
     when lock $ do
-      CD{..} <- challengeData sess (CS yr d p)
+      CD{..} <- challengeData sess yr cs
       forM_ (inp0 <|> eitherToMaybe _cdInput) $ \inp ->
         mapM_ (writeFile _cpAnswer) =<< evaluate (force (runSomeSolution c inp))
-    f c inp0 =<< challengeData sess (CS yr d p)
+    f c inp0 =<< challengeData sess yr cs
 
 runTestSuite :: SomeSolution -> ChallengeData -> IO (Maybe Bool)
 runTestSuite c CD{..} = do

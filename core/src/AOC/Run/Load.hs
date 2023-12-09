@@ -91,8 +91,8 @@ data ChallengeData = CD { _cdPrompt     :: !(Either [String] Text)
                         }
 
 -- | Generate a 'ChallengePaths' from a specification of a challenge.
-challengePaths :: ChallengeSpec -> ChallengePaths
-challengePaths (CS y d p) = CP
+challengePaths :: Integer -> ChallengeSpec -> ChallengePaths
+challengePaths y (CS d p) = CP
     { _cpPrompt     = "prompt"           </> printf "%04d/%02d%c" d' p' <.> "md"
     , _cpCodeBlocks = "data/code-blocks" </> printf "%04d/%02d%c" d' p' <.> "txt"
     , _cpInput      = "data"             </> printf "%04d/%02d" d'      <.> "txt"
@@ -114,9 +114,10 @@ makeChallengeDirs CP{..} =
 -- token).
 challengeData
     :: Maybe String   -- ^ session key
+    -> Integer        -- ^ year
     -> ChallengeSpec
     -> IO ChallengeData
-challengeData sess spec@CS{..} = do
+challengeData sess yr spec@CS{..} = do
     makeChallengeDirs ps
     inp   <- runExceptT . asum $
       [ maybeToEither [printf "Input file not found at %s" _cpInput]
@@ -147,7 +148,7 @@ challengeData sess spec@CS{..} = do
       , _cdTests      = ts
       }
   where
-    ps@CP{..} = challengePaths spec
+    ps@CP{..} = challengePaths yr spec
     readFileMaybe :: FilePath -> IO (Maybe String)
     readFileMaybe =
         (traverse (evaluate . force) . eitherToMaybe =<<)
@@ -157,7 +158,7 @@ challengeData sess spec@CS{..} = do
     fetchInput = do
         s <- maybeToEither ["Session key needed to fetch input"]
               sess
-        let opts = defaultAoCOpts _csYear s
+        let opts = defaultAoCOpts yr s
         inp <- liftEither . bimap showAoCError T.unpack
            =<< liftIO (runAoC opts a)
         liftIO $ writeFile _cpInput inp
@@ -175,7 +176,7 @@ challengeData sess spec@CS{..} = do
         liftIO $ T.writeFile _cpPrompt prompt
         pure prompt
       where
-        opts = defaultAoCOpts _csYear $ fold sess
+        opts = defaultAoCOpts yr $ fold sess
         a = AoCPrompt _csDay
         e = case sess of
           Just _  -> "Part not yet released"
@@ -191,7 +192,7 @@ challengeData sess spec@CS{..} = do
         liftIO $ T.writeFile _cpCodeBlocks $ T.intercalate codeBlockSep blocks
         pure blocks
       where
-        opts = defaultAoCOpts _csYear $ fold sess
+        opts = defaultAoCOpts yr $ fold sess
         a = AoCPrompt _csDay
         e = case sess of
           Just _  -> "Part not yet released"
