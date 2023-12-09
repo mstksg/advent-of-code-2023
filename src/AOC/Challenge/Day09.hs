@@ -22,8 +22,8 @@
 --     will recommend what should go in place of the underscores.
 
 module AOC.Challenge.Day09 (
-    -- day09a
-  -- , day09b
+    day09a
+  , day09b
   ) where
 
 import           AOC.Prelude
@@ -47,14 +47,35 @@ import qualified Text.Megaparsec.Char.Lexer     as PP
 
 day09a :: _ :~> _
 day09a = MkSol
-    { sParse = Just . lines
+    { sParse = traverse (traverse (readMaybe @Int) . words) . lines
     , sShow  = show
-    , sSolve = Just
+    , sSolve = noFail $
+            sum . map getNext
     }
+  where
+    getNext = sum
+            . map last
+            -- . foldr1 (\diffs xs -> zipWith (+) xs diffs)
+            -- . over _head (\(x:xs) -> x:x:xs)
+            -- . reverse
+            . iterateMaybe (\xs -> let ys = zipWith (-) (drop 1 xs) xs in guard (not $ all (== 0) ys) $> ys)
+-- loopMaybe
+--     :: (a -> Maybe a)
+--     -> a
+--     -> a
 
 day09b :: _ :~> _
 day09b = MkSol
     { sParse = sParse day09a
     , sShow  = show
-    , sSolve = Just
+    , sSolve = noFail $
+            sum . map getPrev
     }
+  where
+    getPrev = sum
+            . map last
+            -- . foldr1 (\diffs xs -> zipWith (+) xs diffs)
+            -- . over _head (\(x:xs) -> x:x:xs)
+            -- . reverse
+            . iterateMaybe (\xs -> let ys = zipWith (-) (drop 1 xs) xs in guard (not $ all (== 0) ys) $> ys)
+            . reverse
