@@ -137,6 +137,7 @@ common common-options
       TemplateHaskell
       TupleSections
       TypeApplications
+      TypeFamilies
       TypeInType
       TypeOperators
       UndecidableInstances
