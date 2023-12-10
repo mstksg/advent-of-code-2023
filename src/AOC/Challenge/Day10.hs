@@ -6,17 +6,6 @@
 -- Portability : non-portable
 --
 -- Day 10.  See "AOC.Solver" for the types used in this module!
---
--- After completing the challenge, it is recommended to:
---
--- *   Replace "AOC.Prelude" imports to specific modules (with explicit
---     imports) for readability.
--- *   Remove the @-Wno-unused-imports@ and @-Wno-unused-top-binds@
---     pragmas.
--- *   Replace the partial type signatures underscores in the solution
---     types @_ :~> _@ with the actual types of inputs and outputs of the
---     solution.  You can delete the type signatures completely and GHC
---     will recommend what should go in place of the underscores.
 module AOC.Challenge.Day10
   ( day10a,
     day10b,
@@ -58,7 +47,7 @@ followPath mp startPoint = unfoldr go (startPoint, Nothing)
           for_ lastPos \p -> guard (nextPos /= p)
           pure ((d, currPos), (nextPos, Just currPos))
 
-day10a :: _ :~> _
+day10a :: Map Point (Maybe (Set Dir)) :~> Int
 day10a =
   MkSol
     { sParse = noFail $ parseAsciiMap parseChar,
@@ -73,7 +62,7 @@ bothDirs xs = zipWith go xs (drop 1 $ cycle xs)
   where
     go (d', _) (d, p) = (S.fromList [d', d], p)
 
-day10b :: _ :~> _
+day10b :: Map Point (Maybe (Set Dir)) :~> Int
 day10b =
   MkSol
     { sParse = noFail $ parseAsciiMap parseChar,
