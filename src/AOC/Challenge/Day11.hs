@@ -29,7 +29,7 @@ expandBy toAdd orig = NES.mapMonotonic reshape orig
       let underX = IS.size $ IS.takeWhileAntitone (< x) blankSet
        in x + underX * toAdd
     blanks :: V2 IntSet
-    blanks = go <$> sequenceA (boundingBox orig) <*> sequenceA (toList orig)
+    blanks = liftA2 go (sequenceA (boundingBox orig)) (sequenceA (toList orig))
       where
         go (V2 mn mx) xs = IS.fromDistinctAscList [mn .. mx] IS.\\ IS.fromList xs
 
