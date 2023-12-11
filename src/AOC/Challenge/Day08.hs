@@ -17,10 +17,13 @@ where
 
 import AOC.Common (LCM (..))
 import AOC.Solver (noFail, (:~>) (..))
+import Control.Monad (guard)
 import Data.Char (isAlphaNum)
+import Data.Functor (($>))
 import Data.List (foldl')
 import Data.Map (Map)
 import qualified Data.Map as M
+import Data.Maybe (mapMaybe)
 import Data.Sequence (Seq)
 import qualified Data.Sequence as Seq
 
@@ -75,8 +78,9 @@ day08b =
     { sParse = parseMe . lines,
       sShow = show,
       sSolve = noFail \(xs, mp) ->
-        let sm = stateMachine (\k -> last k /= 'Z') xs mp
-         in getLCM
-              . M.foldMapWithKey (\k i -> if last k == 'A' then LCM (length i) else mempty)
-              $ expandPath sm
+        foldr lcm 1
+          . mapMaybe (\(k, i) -> guard (last k == 'A') $> length i)
+          . M.toList
+          . expandPath
+          $ stateMachine (\k -> last k /= 'Z') xs mp
     }
