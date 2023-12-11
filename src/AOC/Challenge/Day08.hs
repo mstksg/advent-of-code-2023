@@ -35,26 +35,26 @@ parseMe = \case
      in Just (path, mp)
   _ -> Nothing
 
-stateMachine :: [Bool] -> [(String, String, String)] -> Map String (Seq String)
-stateMachine lrs xs =
+stateMachine :: (String -> Bool) -> [Bool] -> [(String, String, String)] -> Map String (Seq String)
+stateMachine isValid lrs xs =
   M.fromList
     [ (a, (\dir -> if dir then c else b) <$> dirMap)
-      | (a, b, c) <- xs
+      | (a, b, c) <- xs,
+        isValid a
     ]
   where
     dirMap :: Seq Bool
     dirMap = Seq.fromList lrs
 
-pathToCond ::
-  (String -> Bool) ->
+expandPath ::
   Map String (Seq String) ->
   Map String [String]
-pathToCond cond mp = (`Seq.index` 0) <$> res
+expandPath mp = (`Seq.index` 0) <$> res
   where
     res = flip (fmap . Seq.mapWithIndex) mp \i str ->
-      str : if cond str
-        then []
-        else (res M.! str) `ixMod` (i + 1)
+      str : case M.lookup str res of
+        Nothing -> []
+        Just r -> r `ixMod` (i + 1)
 
 ixMod :: Seq a -> Int -> a
 ixMod xs i = xs `Seq.index` (i `mod` Seq.length xs)
@@ -65,8 +65,8 @@ day08a =
     { sParse = parseMe . lines,
       sShow = show,
       sSolve = noFail \(xs, mp) ->
-        let sm = stateMachine xs mp
-         in length $ pathToCond (== "ZZZ") sm M.! "AAA"
+        let sm = stateMachine (/= "ZZZ") xs mp
+         in length $ expandPath sm M.! "AAA"
     }
 
 day08b :: ([Bool], [(String, String, String)]) :~> Int
@@ -75,8 +75,8 @@ day08b =
     { sParse = parseMe . lines,
       sShow = show,
       sSolve = noFail \(xs, mp) ->
-        let sm = stateMachine xs mp
+        let sm = stateMachine (\k -> last k /= 'Z') xs mp
          in getLCM
               . M.foldMapWithKey (\k i -> if last k == 'A' then LCM (length i) else mempty)
-              $ pathToCond (\k -> last k == 'Z') sm
+              $ expandPath sm
     }
