@@ -10,9 +10,7 @@ module AOC.Util.DynoMap
 where
 
 import Control.Monad
-import Data.Constraint
-import Data.Constraint.Compose
-import Data.Constraint.Extras
+import Data.Constraint.Extras.TH
 import Data.Dependent.Sum
 import Data.Functor.Identity
 import Data.GADT.Compare
@@ -32,17 +30,7 @@ deriving stock instance Show (TestType a)
 instance GShow TestType where
   gshowsPrec = showsPrec
 
-instance ArgDict Show TestType where
-  type ConstraintsFor TestType Show = ()
-  argDict = \case
-    TTInt -> Dict
-    TTString -> Dict
-
-instance ArgDict (ComposeC Show Identity) TestType where
-  type ConstraintsFor TestType (ComposeC Show Identity) = ()
-  argDict = \case
-    TTInt -> Dict
-    TTString -> Dict
+deriveArgDict ''TestType
 
 instance GEq TestType where
   geq = \case

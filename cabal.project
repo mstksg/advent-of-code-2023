@@ -1,4 +1,4 @@
 packages:
-    ./2023
+    -- ./2023
     ./common
     ./core

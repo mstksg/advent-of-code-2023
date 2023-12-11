@@ -30,7 +30,7 @@ common common-options
                      , ansi-terminal
                      , bytestring
                      , constraints
-                     , constraints-extras < 0.4
+                     , constraints-extras
                      , containers
                      , data-default-class
                      , deepseq
