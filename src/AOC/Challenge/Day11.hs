@@ -10,15 +10,16 @@ module AOC.Challenge.Day11
   )
 where
 
-import AOC.Solver ((:~>)(..), noFail)
-import AOC.Common.Point (Point, parseAsciiSet, mannDist, boundingBox)
-import Data.Set.NonEmpty (NESet)
-import Data.IntSet (IntSet)
-import Linear.V2 (V2(..))
+import AOC.Common.Point (Point, boundingBox, mannDist, parseAsciiSet)
+import AOC.Solver (dyno_, noFail, (:~>) (..))
+import AOC.Util.DynoMap (DynoMap)
 import Data.Foldable (toList)
-import Data.List (tails)
+import Data.IntSet (IntSet)
 import qualified Data.IntSet as IS
+import Data.List (tails)
+import Data.Set.NonEmpty (NESet)
 import qualified Data.Set.NonEmpty as NES
+import Linear.V2 (V2 (..))
 
 expandBy :: Int -> NESet Point -> NESet Point
 expandBy toAdd orig = NES.mapMonotonic reshape orig
@@ -37,23 +38,22 @@ expandBy toAdd orig = NES.mapMonotonic reshape orig
       flip filter [yMin .. yMax] \y ->
         all ((`NES.notMember` orig) . flip V2 y) [yMin .. yMax]
 
-day11 :: Int -> NESet Point :~> Int
+day11 :: ((?dyno :: DynoMap) => Int) -> NESet Point :~> Int
 day11 toAdd =
   MkSol
     { sParse = NES.nonEmptySet . parseAsciiSet (== '#'),
       sShow = show,
       sSolve = noFail $
         \xs ->
-          let xs' = expandBy toAdd xs
-           in sum
-                [ mannDist x y
-                  | x : ys <- tails $ toList xs',
-                    y <- ys
-                ]
+          sum
+            [ mannDist x y
+              | x : ys <- tails $ toList (expandBy toAdd xs),
+                y <- ys
+            ]
     }
 
 day11a :: NESet Point :~> Int
 day11a = day11 1
 
 day11b :: NESet Point :~> Int
-day11b = day11 999999
+day11b = day11 $ dyno_ "expansion" 999999
