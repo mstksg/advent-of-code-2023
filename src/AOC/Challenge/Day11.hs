@@ -13,9 +13,8 @@ where
 import AOC.Common.Point (Point, boundingBox, mannDist, parseAsciiSet)
 import AOC.Solver (dyno_, noFail, (:~>) (..))
 import AOC.Util.DynoMap (DynoMap)
-import Control.Applicative (liftA2)
+import Control.Applicative (liftA3)
 import Data.Foldable (toList)
-import Data.IntSet (IntSet)
 import qualified Data.IntSet as IS
 import Data.List (tails)
 import Data.Set.NonEmpty (NESet)
@@ -25,13 +24,13 @@ import Linear.V2 (V2 (..))
 expandBy :: Int -> NESet Point -> NESet Point
 expandBy toAdd orig = NES.mapMonotonic reshape orig
   where
-    reshape = flip liftA2 blanks \blankSet x ->
-      let underX = IS.size $ IS.takeWhileAntitone (< x) blankSet
-       in x + underX * toAdd
-    blanks :: V2 IntSet
-    blanks = liftA2 go (sequenceA (boundingBox orig)) (sequenceA (toList orig))
+    reshape = liftA3 go (sequenceA (boundingBox orig)) (sequenceA (toList orig))
       where
-        go (V2 mn mx) xs = IS.fromDistinctAscList [mn .. mx] IS.\\ IS.fromList xs
+        go (V2 mn mx) xs = \x ->
+          let underX = IS.size $ IS.takeWhileAntitone (< x) blanks
+           in x + underX * toAdd
+          where
+            blanks = IS.fromDistinctAscList [mn .. mx] IS.\\ IS.fromList xs
 
 day11 :: ((?dyno :: DynoMap) => Int) -> NESet Point :~> Int
 day11 toAdd =
