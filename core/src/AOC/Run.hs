@@ -24,19 +24,16 @@ module AOC.Run
 
     -- ** Run solutions, tests, benchmarks
     MainRunOpts (..),
-    HasMainRunOpts (..),
     mainRun,
     defaultMRO,
 
     -- ** View prompts
     MainViewOpts (..),
-    HasMainViewOpts (..),
     mainView,
     defaultMVO,
 
     -- ** Submit answers
     MainSubmitOpts (..),
-    HasMainSubmitOpts (..),
     mainSubmit,
     defaultMSO,
 
@@ -55,7 +52,6 @@ import Control.Applicative
 import Control.Concurrent
 import Control.DeepSeq
 import Control.Exception
-import Control.Lens
 import Control.Monad
 import Control.Monad.Except
 import Criterion
@@ -96,16 +92,12 @@ data MainRunOpts = MRO
     _mroInput :: !(ChallengeSpec -> IO (Maybe String))
   }
 
-makeClassy ''MainRunOpts
-
 -- | Options for 'mainView'.
 data MainViewOpts = MVO
   { _mvoSpec :: !TestSpec,
     _mvoWait :: !Bool
   }
   deriving stock (Show)
-
-makeClassy ''MainViewOpts
 
 -- | Options for 'mainSubmit'
 data MainSubmitOpts = MSO
@@ -117,8 +109,6 @@ data MainSubmitOpts = MSO
     _msoLock :: !Bool
   }
   deriving stock (Show)
-
-makeClassy ''MainSubmitOpts
 
 data ChallengeBundle = CB
   { _cbYear :: Integer,

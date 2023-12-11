@@ -23,65 +23,31 @@ source-repository head
   location:            https://github.com/mstksg/advent-of-code-dev.git
 
 common common-options
-  build-depends:       advent-of-code-api >=0.2.7
-                     , Cabal
+  build-depends:       base >=4.7 && <5
+                     , advent-of-code-api >=0.2.8.4
+                     , criterion
                      , aeson
                      , ansi-terminal
-                     , base >=4.7 && <5
-                     , bitvec
-                     , data-interval
                      , bytestring
-                     , comonad
-                     , conduino
                      , constraints
                      , constraints-extras < 0.4
                      , containers
-                     , criterion
                      , data-default-class
-                     , data-memocombinators
                      , deepseq
                      , dependent-sum
                      , directory
-                     , fgl
                      , filepath
-                     , fin
-                     , finitary
-                     , finite-typelits
-                     , foldl
-                     , ghc-typelits-natnormalise
-                     , groups
-                     , hashable
                      , haskeline
-                     -- , haskell-names
-                     -- , haskell-src-exts
-                     , heredoc
-                     , hpack
-                     , lens
-                     , linear
                      , megaparsec
-                     , microlens-th
                      , mtl
-                     , nonempty-containers
                      , pandoc
-                     , parallel
                      , parser-combinators
-                     , pointedlist
-                     , profunctors
-                     , psqueues
-                     , recursion-schemes
-                     , safe
-                     , semigroupoids
-                     , split
-                     , strict-tuple
                      , tagsoup
                      , template-haskell
                      , text
                      , th-abstraction
                      , time
                      , transformers
-                     , vector
-                     , vector-algorithms
-                     , vector-sized
                      , yaml
 
   ghc-options:         -Wall
@@ -145,39 +111,7 @@ common common-options
 library
   import:              common-options
   exposed-modules:
-      -- AOC
-      -- AOC.Challenge
-      -- AOC.Challenge.Day01
-      -- AOC.Challenge.Day02
-      -- AOC.Challenge.Day03
-      -- AOC.Challenge.Day04
-      -- AOC.Challenge.Day05
-      -- AOC.Challenge.Day06
-      -- AOC.Challenge.Day07
-      -- AOC.Challenge.Day08
-      -- AOC.Challenge.Day09
-      -- AOC.Challenge.Day10
-      -- AOC.Challenge.Day11
-      -- AOC.Challenge.Day12
-      -- AOC.Challenge.Day13
-      -- AOC.Challenge.Day14
-      -- AOC.Challenge.Day15
-      -- AOC.Challenge.Day16
-      -- AOC.Challenge.Day17
-      -- AOC.Challenge.Day18
-      -- AOC.Challenge.Day19
-      -- AOC.Challenge.Day20
-      -- AOC.Challenge.Day21
-      -- AOC.Challenge.Day22
-      -- AOC.Challenge.Day23
-      -- AOC.Challenge.Day24
-      -- AOC.Challenge.Day25
-      -- AOC.Common
-      -- AOC.Common.FinitarySet
-      -- AOC.Common.Point
-      -- AOC.Common.Search
       AOC.Discover
-      -- AOC.Prelude
       AOC.Run
       AOC.Run.Config
       AOC.Run.Interactive
@@ -191,47 +125,3 @@ library
       src
   other-modules:
       Paths_aoc_core
-
--- executable aoc2023
---   import: common-options
---   main-is: aoc-runner.hs
---   hs-source-dirs:
---       app
---   build-depends:
---       ansi-terminal
---     , aoc2023
---     , base >=4.7 && <5
---     , containers
---     , deepseq
---     , finite-typelits
---     , microlens
---     , mtl
---     , optparse-applicative
---   default-language: Haskell2010
---   ghc-options: -threaded -rtsopts -with-rtsopts=-N
-
--- test-suite aoc2023-test
---   import: common-options
---   type: exitcode-stdio-1.0
---   main-is: Spec.hs
---   hs-source-dirs:
---       test
---   ghc-options: -threaded -rtsopts -with-rtsopts=-N
---   build-depends:
---       ansi-terminal
---     , aoc2023
---     , base >=4.7 && <5
---     , mtl
---   default-language: Haskell2010
-
--- benchmark aoc2023-bench
---   type: exitcode-stdio-1.0
---   main-is: Bench.hs
---   hs-source-dirs:
---       bench
---   ghc-options: -threaded -rtsopts -with-rtsopts=-N
---   build-depends:
---       aoc2023
---     , base >=4.7 && <5
---     , mtl
---   default-language: Haskell2010

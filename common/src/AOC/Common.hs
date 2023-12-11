@@ -1120,3 +1120,24 @@ instance R.Recursive (Tree a) where
 instance R.Corecursive (Tree a) where
     embed (NodeF x xs) = Node x xs
 #endif
+
+-- | Like 'find', but instead of taking an @a -> Bool@, takes an @a ->
+-- Maybe b@ and returns the first success.
+firstJust ::
+  (Foldable t) =>
+  (a -> Maybe b) ->
+  t a ->
+  Maybe b
+firstJust p = asum . map p . toList
+
+-- | Generalize a 'Maybe' to any 'Alternative'
+maybeAlt :: (Alternative m) => Maybe a -> m a
+maybeAlt = maybe empty pure
+
+-- | Like 'traceShowId' but with an extra message
+traceShowIdMsg :: (Show a) => String -> a -> a
+traceShowIdMsg msg x = trace (msg ++ show x) x
+
+-- | Like 'traceShow' but with an extra message
+traceShowMsg :: (Show a) => String -> a -> b -> b
+traceShowMsg msg x = trace (msg ++ show x)

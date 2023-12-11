@@ -11,31 +11,33 @@
 --
 -- Types to drive the challenge runner and help speed up/clean up
 -- solutions.
---
+module AOC.Solver
+  ( (:~>) (..),
+    noFail,
+    withSolver,
+    withSolver',
+    SomeSolution (.., MkSomeSol),
+    SolutionError (..),
+    runSolution,
+    runSomeSolution,
+    ssIsNF,
 
-module AOC.Solver (
-    (:~>)(..), noFail
-  , withSolver, withSolver'
-  , SomeSolution(.., MkSomeSol)
-  , SolutionError(..)
-  , runSolution
-  , runSomeSolution
-  , ssIsNF
-  -- * 'DynoMap'
-  , runSolutionWith
-  , runSomeSolutionWith
-  , dyno
-  , dyno_
-  , TestType(..)
-  ) where
+    -- * 'DynoMap'
+    runSolutionWith,
+    runSomeSolutionWith,
+    dyno,
+    dyno_,
+    TestType (..),
+  )
+where
 
-import           AOC.Util
-import           AOC.Util.DynoMap
-import           Control.DeepSeq
-import           Data.Dependent.Sum
-import           Data.Functor.Identity
-import           Data.Map                   (Map)
-import           GHC.Generics               (Generic)
+import AOC.Util
+import AOC.Util.DynoMap
+import Control.DeepSeq
+import Data.Dependent.Sum
+import Data.Functor.Identity
+import Data.Map (Map)
+import GHC.Generics (Generic)
 
 -- | Abstracting over the type of a challenge solver to help with cleaner
 -- solutions.
@@ -47,11 +49,16 @@ import           GHC.Generics               (Generic)
 -- a general @a -> 'Maybe' b@ function, and the parser and shower are used
 -- to handle the boilerplate of parsing and printing the solution.
 data a :~> b = MkSol
-    { sParse :: String -> Maybe a    -- ^ parse input into an @a@
-    , sSolve :: (?dyno :: DynoMap)
-             => a      -> Maybe b    -- ^ solve an @a@ input to a @b@ solution
-    , sShow  :: b      -> String     -- ^ print out the @b@ solution in a pretty way
-    }
+  { -- | parse input into an @a@
+    sParse :: String -> Maybe a,
+    -- | solve an @a@ input to a @b@ solution
+    sSolve ::
+      (?dyno :: DynoMap) =>
+      a ->
+      Maybe b,
+    -- | print out the @b@ solution in a pretty way
+    sShow :: b -> String
+  }
 
 noFail :: (a -> b) -> a -> Maybe b
 noFail f = Just . f
@@ -59,18 +66,18 @@ noFail f = Just . f
 -- | Wrap an @a ':~>' b@ and hide the type variables so we can put
 -- different solutions in a container.
 data SomeSolution where
-    MkSomeSolWH :: a :~> b -> SomeSolution
-    MkSomeSolNF :: (NFData a, NFData b) => a :~> b -> SomeSolution
+  MkSomeSolWH :: a :~> b -> SomeSolution
+  MkSomeSolNF :: (NFData a, NFData b) => a :~> b -> SomeSolution
 
 -- | Check if a 'SomeSolution' is equipped with an 'NFData' instance on the
 -- types
 ssIsNF :: SomeSolution -> Bool
 ssIsNF = \case
-    MkSomeSolWH _ -> False
-    MkSomeSolNF _ -> True
+  MkSomeSolWH _ -> False
+  MkSomeSolNF _ -> True
 
 data SomeSolHelp where
-    SSH :: a :~> b -> SomeSolHelp
+  SSH :: a :~> b -> SomeSolHelp
 
 toHelp :: SomeSolution -> SomeSolHelp
 toHelp (MkSomeSolWH x) = SSH x
@@ -79,14 +86,16 @@ toHelp (MkSomeSolNF x) = SSH x
 -- | Handy pattern to work with both 'MkSomeSolWH' and 'MkSomeSolNF'.  As
 -- a constructor, just uses 'MkSomeSolWH', so might not be desirable.
 pattern MkSomeSol :: () => forall a b. () => a :~> b -> SomeSolution
-pattern MkSomeSol s <- (toHelp->SSH s)
+pattern MkSomeSol s <- (toHelp -> SSH s)
   where
     MkSomeSol x = MkSomeSolWH x
+
 {-# COMPLETE MkSomeSol #-}
 
 -- | Errors that might happen when running a ':~>' on some input.
-data SolutionError = SEParse
-                   | SESolve
+data SolutionError
+  = SEParse
+  | SESolve
   deriving stock (Show, Eq, Ord, Generic)
 
 instance NFData SolutionError
@@ -99,10 +108,11 @@ withSolver' f = withSolver (Just . f)
 -- | Construct a ':~>' from a @String -> 'Maybe' String@ solver, which
 -- might fail.  Does no parsing or special printing treatment.
 withSolver :: (String -> Maybe String) -> String :~> String
-withSolver f = MkSol
-    { sParse = Just
-    , sShow  = id
-    , sSolve = f
+withSolver f =
+  MkSol
+    { sParse = Just,
+      sShow = id,
+      sSolve = f
     }
 
 -- | Run a ':~>' on some input.
@@ -110,32 +120,34 @@ runSolution :: a :~> b -> String -> Either SolutionError String
 runSolution = runSolutionWith mempty
 
 -- | Run a ':~>' on some input, with a map of dynamic values for testing
-runSolutionWith
-    :: Map String (DSum TestType Identity)       -- ^ map of dynamic values for testing with 'lookupDyno'.
-    -> a :~> b
-    -> String
-    -> Either SolutionError String
-runSolutionWith dm MkSol{..} (stripNewline->s) = do
-    x <- maybeToEither SEParse . sParse $ s
-    y <- maybeToEither SESolve . sSolve $ x
-    pure $ sShow y
+runSolutionWith ::
+  -- | map of dynamic values for testing with 'lookupDyno'.
+  Map String (DSum TestType Identity) ->
+  a :~> b ->
+  String ->
+  Either SolutionError String
+runSolutionWith dm MkSol {..} (stripNewline -> s) = do
+  x <- maybeToEither SEParse . sParse $ s
+  y <- maybeToEither SESolve . sSolve $ x
+  pure $ sShow y
   where
     ?dyno = Dyno dm
 
 -- | Run a 'SomeSolution' on some input.
-runSomeSolution
-    :: SomeSolution
-    -> String
-    -> Either SolutionError String
+runSomeSolution ::
+  SomeSolution ->
+  String ->
+  Either SolutionError String
 runSomeSolution = runSomeSolutionWith mempty
 
 -- | Run a 'SomeSolution' on some input, with a map of dynamic values for
 -- testing
-runSomeSolutionWith
-    :: Map String (DSum TestType Identity)       -- ^ map of dynamic values for testing with 'lookupDyno'.
-    -> SomeSolution
-    -> String
-    -> Either SolutionError String
+runSomeSolutionWith ::
+  -- | map of dynamic values for testing with 'lookupDyno'.
+  Map String (DSum TestType Identity) ->
+  SomeSolution ->
+  String ->
+  Either SolutionError String
 runSomeSolutionWith dm (MkSomeSol c) = runSolutionWith dm c
 
 -- | From a @?dyno@ Implicit Params, look up a value at a given key.  Meant
@@ -151,10 +163,11 @@ runSomeSolutionWith dm (MkSomeSol c) = runSolutionWith dm c
 --
 -- This is useful for when some problems have parameters that are
 -- different with test inputs than for actual inputs.
-dyno
-    :: forall a. (HasTestType a, ?dyno :: DynoMap)
-    => String
-    -> Maybe a
+dyno ::
+  forall a.
+  (HasTestType a, ?dyno :: DynoMap) =>
+  String ->
+  Maybe a
 dyno = (`lookupDyno` ?dyno)
 
 -- | A version of 'dyno' taking a default value in case the key is not
@@ -167,9 +180,11 @@ dyno = (`lookupDyno` ?dyno)
 --
 -- This is useful for when some problems have parameters that are
 -- different with test inputs than for actual inputs.
-dyno_
-    :: forall a. (HasTestType a, ?dyno :: DynoMap)
-    => String
-    -> a            -- ^ default
-    -> a
+dyno_ ::
+  forall a.
+  (HasTestType a, ?dyno :: DynoMap) =>
+  String ->
+  -- | default
+  a ->
+  a
 dyno_ str def = lookupDynoWith str def ?dyno
