@@ -14,7 +14,7 @@
             aoc2023 = final.haskell-nix.project' {
               name = "advent-of-code";
               src = ./.;
-              compiler-nix-name = "ghc948";
+              compiler-nix-name = "ghc963";
               shell = {
                 withHoogle = false;
                 tools = {

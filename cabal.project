@@ -2,3 +2,11 @@ packages:
     -- ./2023
     ./common
     ./core
+
+
+-- only until haskell.nix pulls in v0.2.9.0
+source-repository-package
+  type: git
+  location: https://github.com/mstksg/advent-of-code-api.git
+  tag: 46095de52b68cc3d847cff9c3a9aadb01d383665
+  --sha256: 08k7flbq3pbxm8pi4wx36h7z533anwpzc0aswmx0s71w97jryij6
