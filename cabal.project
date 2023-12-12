@@ -8,5 +8,5 @@ packages:
 source-repository-package
   type: git
   location: https://github.com/mstksg/advent-of-code-api.git
-  tag: 46095de52b68cc3d847cff9c3a9aadb01d383665
-  --sha256: 08k7flbq3pbxm8pi4wx36h7z533anwpzc0aswmx0s71w97jryij6
+  tag: 509f5714d0edf4e2b3b52c2512457e986e531cfc
+  --sha256: 0jipd2fqh4vz0mi61nqm3x3n24kzz5w3nq77c6l0zfp2zr9c7ymb

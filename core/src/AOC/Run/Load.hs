@@ -44,7 +44,7 @@ import AOC.Discover
 import AOC.Util
 import AOC.Util.DynoMap
 import Advent
-import Advent.API
+import Advent.API (processHTML)
 import Control.Applicative
 import Control.Concurrent
 import Control.DeepSeq
