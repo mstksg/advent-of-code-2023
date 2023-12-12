@@ -61,7 +61,6 @@ module AOC.Common.Point
   )
 where
 
-import Control.Applicative
 import Control.DeepSeq
 import qualified Control.Foldl as F
 import Control.Lens

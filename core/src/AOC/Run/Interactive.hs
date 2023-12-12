@@ -45,7 +45,9 @@ import AOC.Run.Load
 import AOC.Solver
 import AOC.Util
 import Advent
+import Control.Monad
 import Control.Monad.Except
+import Control.Monad.IO.Class
 import Data.Bifunctor
 import qualified Data.Map as M
 import Data.Text (Text)

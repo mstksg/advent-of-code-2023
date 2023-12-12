@@ -28,6 +28,7 @@ module AOC.Run.Load
     mkDay_,
     dayInt,
     TestMeta (..),
+    aocUserAgent,
 
     -- * Parsers
     parseMeta,
@@ -51,6 +52,7 @@ import Control.Exception
 import Control.Monad
 import qualified Control.Monad.Combinators as MP
 import Control.Monad.Except
+import Control.Monad.IO.Class
 import Data.Bifunctor
 import Data.Char
 import Data.Dependent.Sum
@@ -176,7 +178,7 @@ challengeData sess yr spec@CS {..} = do
         maybeToEither
           ["Session key needed to fetch input"]
           sess
-      let opts = defaultAoCOpts yr s
+      let opts = defaultAoCOpts aocUserAgent yr s
       inp <-
         liftEither . bimap showAoCError T.unpack
           =<< liftIO (runAoC opts a)
@@ -197,7 +199,7 @@ challengeData sess yr spec@CS {..} = do
       liftIO $ T.writeFile _cpPrompt prompt
       pure prompt
       where
-        opts = defaultAoCOpts yr $ fold sess
+        opts = defaultAoCOpts aocUserAgent yr $ fold sess
         a = AoCPrompt _csDay
         e = case sess of
           Just _ -> "Part not yet released"
@@ -215,7 +217,7 @@ challengeData sess yr spec@CS {..} = do
       liftIO $ T.writeFile _cpCodeBlocks $ T.intercalate codeBlockSep blocks
       pure blocks
       where
-        opts = defaultAoCOpts yr $ fold sess
+        opts = defaultAoCOpts aocUserAgent yr $ fold sess
         a = AoCPrompt _csDay
         e = case sess of
           Just _ -> "Part not yet released"
@@ -373,3 +375,6 @@ printMeta TM {..} =
         (val, typ) = case dynval of
           TTInt :=> Identity x -> (T.pack (show x), "int")
           TTString :=> Identity x -> (T.pack x, "string")
+
+aocUserAgent :: AoCUserAgent
+aocUserAgent = AoCUserAgent "github.com/mstksg/advent-of-code" "justin@jle.im"

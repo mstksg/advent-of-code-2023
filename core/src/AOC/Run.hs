@@ -54,6 +54,7 @@ import Control.DeepSeq
 import Control.Exception
 import Control.Monad
 import Control.Monad.Except
+import Control.Monad.IO.Class
 import Criterion
 import Data.Bifunctor
 import Data.Char
@@ -254,7 +255,7 @@ mainSubmit CB {..} Cfg {..} cs@CS {..} MSO {..} = do
   cd@CD {..} <- liftIO $ challengeData _cfgSession _cbYear cs
   inp <- liftEither . first ("[PROMPT ERROR]" :) $ _cdInput
   opts <-
-    defaultAoCOpts _cbYear
+    defaultAoCOpts aocUserAgent _cbYear
       <$> maybeToEither
         ["ERROR: Session Key Required to Submit"]
         _cfgSession
