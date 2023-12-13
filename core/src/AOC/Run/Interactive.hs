@@ -16,6 +16,7 @@ module AOC.Run.Interactive
     execSolution,
     execSolutionWith,
     testSolution,
+    testSolutionOnly,
     viewPrompt,
     waitForPrompt,
     submitSolution,
@@ -24,6 +25,7 @@ module AOC.Run.Interactive
     execSolution_,
     execSolutionWith_,
     testSolution_,
+    testSolutionOnly_,
     viewPrompt_,
     waitForPrompt_,
     submitSolution_,
@@ -120,6 +122,24 @@ testSolution ri@RI {..} = eitherIO $ do
       M.lookup _riSpec out
   pure $ fst res
 
+-- | Run test suite for a given challenge spec, and NOT the actual input.
+--
+-- Returns 'Just' if any tests were run, with a 'Bool' specifying whether
+-- or not all tests passed.
+testSolutionOnly :: RunInteractive -> IO (Maybe Bool)
+testSolutionOnly ri@RI {..} = eitherIO $ do
+  cfg <- liftIO $ configFile defConfPath
+  out <-
+    mainRun (riChallengeBundle ri) cfg $
+      (defaultMRO (TSPart _riSpec))
+        { _mroActual = False,
+          _mroTest = True
+        }
+  res <-
+    maybeToEither ["Result not found in result map (Internal Error)"] $
+      M.lookup _riSpec out
+  pure $ fst res
+
 -- | View the prompt for a given challenge spec.
 viewPrompt :: RunInteractive -> IO Text
 viewPrompt ri@RI {..} = eitherIO $ do
@@ -162,6 +182,10 @@ execSolutionWith_ ri = void . execSolutionWith ri
 -- | Result-suppressing version of 'testSolution'.
 testSolution_ :: RunInteractive -> IO ()
 testSolution_ = void . testSolution
+
+-- | Result-suppressing version of 'testSolutionOnly'.
+testSolutionOnly_ :: RunInteractive -> IO ()
+testSolutionOnly_ = void . testSolution
 
 -- | Result-suppressing version of 'viewPrompt'.
 viewPrompt_ :: RunInteractive -> IO ()
