@@ -20,9 +20,9 @@ import Data.Foldable (toList)
 import Data.IntMap (IntMap)
 import qualified Data.IntMap as IM
 import Data.IntSet (IntSet)
-import Data.Maybe (listToMaybe)
 import qualified Data.IntSet as IS
 import Data.List.Split (splitOn)
+import Data.Maybe (listToMaybe)
 import Data.Set (Set)
 import Linear.V2 (V2 (..))
 
