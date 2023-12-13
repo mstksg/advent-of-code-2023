@@ -14,7 +14,7 @@
 --
 
 module AOC.Solver (
-    (:~>)(..), noFail
+    (:~>)(..), noFail, traverseSum
   , withSolver, withSolver'
   , SomeSolution(.., MkSomeSol)
   , SolutionError(..)
@@ -55,6 +55,9 @@ data a :~> b = MkSol
 
 noFail :: (a -> b) -> a -> Maybe b
 noFail f = Just . f
+
+traverseSum :: (Traversable f, Num b) => (a -> Maybe b) -> f a -> Maybe b
+traverseSum f = fmap sum . traverse f
 
 -- | Wrap an @a ':~>' b@ and hide the type variables so we can put
 -- different solutions in a container.

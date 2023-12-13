@@ -14,7 +14,7 @@ where
 
 import AOC.Common (firstJust)
 import AOC.Common.Point (Point, fillBoundingBox', parseAsciiSet)
-import AOC.Solver (noFail, (:~>) (..))
+import AOC.Solver (noFail, traverseSum, (:~>) (..))
 import Control.Lens (contains, over)
 import Data.Foldable (toList)
 import Data.IntMap (IntMap)
@@ -57,7 +57,7 @@ day13a =
   MkSol
     { sParse = noFail $ map (parseAsciiSet (== '#')) . splitOn "\n\n",
       sShow = show,
-      sSolve = fmap sum . traverse (listToMaybe . findRefl)
+      sSolve = traverseSum $ listToMaybe . findRefl
     }
 
 findSmudge :: Set Point -> Maybe Int
@@ -74,5 +74,5 @@ day13b =
   MkSol
     { sParse = noFail $ map (parseAsciiSet (== '#')) . splitOn "\n\n",
       sShow = show,
-      sSolve = fmap sum . traverse findSmudge
+      sSolve = traverseSum findSmudge
     }
