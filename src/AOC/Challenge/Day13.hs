@@ -20,15 +20,14 @@ import Data.Foldable (toList)
 import Data.IntMap (IntMap)
 import qualified Data.IntMap as IM
 import Data.IntSet (IntSet)
+import Data.Maybe (listToMaybe)
 import qualified Data.IntSet as IS
 import Data.List.Split (splitOn)
 import Data.Set (Set)
 import Linear.V2 (V2 (..))
 
-findRefl :: Set Point -> IntSet
-findRefl pts =
-  IS.fromList (findForMap cols)
-    <> IS.fromList ((* 100) <$> findForMap rows)
+findRefl :: Set Point -> [Int]
+findRefl pts = findForMap cols <> map (* 100) (findForMap rows)
   where
     cols :: IntMap IntSet
     cols =
@@ -57,15 +56,15 @@ day13a =
   MkSol
     { sParse = noFail $ map (parseAsciiSet (== '#')) . splitOn "\n\n",
       sShow = show,
-      sSolve = fmap sum . traverse (fmap fst . IS.minView . findRefl)
+      sSolve = fmap sum . traverse (listToMaybe . findRefl)
     }
 
 findSmudge :: Set Point -> Maybe Int
 findSmudge pts = flip firstJust (fillBoundingBox' pts) \pt ->
-  let newRefl = findRefl (over (contains pt) not pts)
+  let newRefl = IS.fromList $ findRefl (over (contains pt) not pts)
    in fst <$> IS.minView (newRefl `IS.difference` origRefl)
   where
-    origRefl = findRefl pts
+    origRefl = IS.fromList $ findRefl pts
 
 day13b :: [Set Point] :~> Int
 day13b =

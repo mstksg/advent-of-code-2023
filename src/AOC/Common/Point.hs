@@ -118,7 +118,7 @@ boundingBox' :: (Foldable f, Applicative g, Ord a) => f (g a) -> Maybe (V2 (g a)
 boundingBox' = fmap boundingBox . NE.nonEmpty . toList
 
 fillBoundingBox'
-    :: (Foldable f, Applicative g, Num a, Ord a, Ord (g a), Traversable g, Enum a)
+    :: (Foldable f, Applicative g, Ord a, Ord (g a), Traversable g, Enum a)
     => f (g a) -> Set (g a)
 fillBoundingBox' ps = case boundingBox' ps of
   Nothing -> S.empty
