@@ -29,6 +29,7 @@ where
 
 import AOC.Prelude
 import Data.Bitraversable
+import Control.Monad.Writer
 import qualified Data.Graph.Inductive as G
 import qualified Data.IntMap as IM
 import qualified Data.IntSet as IS
@@ -47,6 +48,7 @@ import qualified Text.Megaparsec.Char as P
 
 -- #.#.### 1,1,3
 
+-- | true = #, false = .
 parseChar = \case
   '#' -> Just $ Just True
   '.' -> Just $ Just False
@@ -128,7 +130,7 @@ chunkUp = go
   where
     go = \case
       [] -> []
-      Just False:xs -> chunkUp xs
+      Just False:xs -> go xs
       Just True:xs -> eatUp (Seq.singleton True) xs
       Nothing:xs -> eatUp (Seq.singleton False) xs
     eatUp qs = \case
@@ -156,6 +158,19 @@ chunkPatterns = S.fromList . map reChunk . traverse (\case True -> [True]; False
 --         -- [ _
 --         -- ]
 
+-- eatUp
+--   :: [Bool]
+--   -> [Seq Bool]
+--   -> Int
+-- eatUp = \case
+--     [] -> \case
+--       [] -> 1
+--       _:_ -> 0
+--     n:ns -> \case
+--       [] -> 0
+--       x:xs -> product do
+--         n' <- eatUp 
+
 
 day12b :: _ :~> _
 day12b =
@@ -169,7 +184,7 @@ day12b =
               pat' = concat $ replicate 5 pat
               xs' :: [Maybe Bool]
               xs' = intercalate [Nothing] $ replicate 5 xs
-          in  head $ chunkPatterns <$> chunkUp xs'
+          in  chunkUp xs
            -- in countTrue (matchesPat pat') $
            --      expandOut . map (\qs -> (length qs, head qs)) $
            --        group xs'
