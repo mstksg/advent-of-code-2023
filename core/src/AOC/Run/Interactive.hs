@@ -10,6 +10,7 @@
 -- Versions of loaders and runners meant to be used in GHCI.
 module AOC.Run.Interactive
   ( -- * Fetch and Run
+    fromSol,
 
     -- ** Return Answers
     execSolution,
@@ -34,6 +35,7 @@ module AOC.Run.Interactive
     loadParseTests,
 
     -- * Util
+    RunInteractive (..),
     mkSpec,
   )
 where
@@ -49,112 +51,129 @@ import Control.Monad
 import Control.Monad.Except
 import Control.Monad.IO.Class
 import Data.Bifunctor
+import Data.Char
 import qualified Data.Map as M
+import Data.Maybe
 import Data.Text (Text)
+import Language.Haskell.TH as TH
+
+data RunInteractive = RI
+  { _riYear :: Integer,
+    _riSpec :: ChallengeSpec,
+    _riSolution :: SomeSolution
+  }
+
+riChallengeBundle :: RunInteractive -> ChallengeBundle
+riChallengeBundle RI {..} =
+  CB
+    { _cbYear = _riYear,
+      _cbChallengeMap =
+        M.singleton
+          (_csDay _riSpec)
+          (M.singleton (_csPart _riSpec) _riSolution)
+    }
 
 -- | Run the solution indicated by the challenge spec on the official
 -- puzzle input.  Get answer as result.
-execSolution :: ChallengeBundle -> ChallengeSpec -> IO String
-execSolution cb cs = eitherIO $ do
+execSolution :: RunInteractive -> IO String
+execSolution ri@RI {..} = eitherIO $ do
   cfg <- liftIO $ configFile defConfPath
-  out <- mainRun cb cfg . defaultMRO $ TSPart cs
+  out <- mainRun (riChallengeBundle ri) cfg . defaultMRO $ TSPart _riSpec
   res <-
     maybeToEither ["Result not found in result map (Internal Error)"] $
-      M.lookup cs out
+      M.lookup _riSpec out
   liftEither $ snd res
 
 -- | Run the solution indicated by the challenge spec on a custom input.
 -- Get answer as result.
 execSolutionWith ::
-  ChallengeBundle ->
-  ChallengeSpec ->
+  RunInteractive ->
   -- | custom puzzle input
   String ->
   IO String
-execSolutionWith cb cs inp = eitherIO $ do
+execSolutionWith ri@RI {..} inp = eitherIO $ do
   cfg <- liftIO $ configFile defConfPath
   out <-
-    mainRun cb cfg $
-      (defaultMRO (TSPart cs))
+    mainRun (riChallengeBundle ri) cfg $
+      (defaultMRO (TSPart _riSpec))
         { _mroInput = \_ -> pure $ Just inp
         }
   res <-
     maybeToEither ["Result not found in result map (Internal Error)"] $
-      M.lookup cs out
+      M.lookup _riSpec out
   liftEither $ snd res
 
 -- | Run test suite for a given challenge spec.
 --
 -- Returns 'Just' if any tests were run, with a 'Bool' specifying whether
 -- or not all tests passed.
-testSolution :: ChallengeBundle -> ChallengeSpec -> IO (Maybe Bool)
-testSolution cb cs = eitherIO $ do
+testSolution :: RunInteractive -> IO (Maybe Bool)
+testSolution ri@RI {..} = eitherIO $ do
   cfg <- liftIO $ configFile defConfPath
   out <-
-    mainRun cb cfg $
-      (defaultMRO (TSPart cs))
+    mainRun (riChallengeBundle ri) cfg $
+      (defaultMRO (TSPart _riSpec))
         { _mroTest = True
         }
   res <-
     maybeToEither ["Result not found in result map (Internal Error)"] $
-      M.lookup cs out
+      M.lookup _riSpec out
   pure $ fst res
 
 -- | View the prompt for a given challenge spec.
-viewPrompt :: ChallengeBundle -> ChallengeSpec -> IO Text
-viewPrompt cb cs = eitherIO $ do
+viewPrompt :: RunInteractive -> IO Text
+viewPrompt ri@RI {..} = eitherIO $ do
   cfg <- liftIO $ configFile defConfPath
-  out <- mainView cb cfg . defaultMVO $ TSPart cs
+  out <- mainView (riChallengeBundle ri) cfg . defaultMVO $ TSPart _riSpec
   maybeToEither ["Prompt not found in result map (Internal Error)"] $
-    M.lookup cs out
+    M.lookup _riSpec out
 
 -- | Countdown to get the prompt for a given challenge spec, if not yet
 -- available.
-waitForPrompt :: ChallengeBundle -> ChallengeSpec -> IO Text
-waitForPrompt cb cs = eitherIO $ do
+waitForPrompt :: RunInteractive -> IO Text
+waitForPrompt ri@RI {..} = eitherIO $ do
   cfg <- liftIO $ configFile defConfPath
   out <-
-    mainView cb cfg $
-      (defaultMVO (TSPart cs))
+    mainView (riChallengeBundle ri) cfg $
+      (defaultMVO (TSPart _riSpec))
         { _mvoWait = True
         }
   maybeToEither ["Prompt not found in result map (Internal Error)"] $
-    M.lookup cs out
+    M.lookup _riSpec out
 
 -- | Submit solution for a given challenge spec, and lock if correct.
-submitSolution :: ChallengeBundle -> ChallengeSpec -> IO (Text, SubmitRes)
-submitSolution cb cs = eitherIO $ do
+submitSolution :: RunInteractive -> IO (Text, SubmitRes)
+submitSolution ri@RI {..} = eitherIO $ do
   cfg <- liftIO $ configFile defConfPath
-  mainSubmit cb cfg cs defaultMSO
+  mainSubmit (riChallengeBundle ri) cfg _riSpec defaultMSO
 
 -- | Result-suppressing version of 'execSolution'.
-execSolution_ :: ChallengeBundle -> ChallengeSpec -> IO ()
-execSolution_ cb = void . execSolution cb
+execSolution_ :: RunInteractive -> IO ()
+execSolution_ = void . execSolution
 
 -- | Result-suppressing version of 'execSolutionWith'.
 execSolutionWith_ ::
-  ChallengeBundle ->
-  ChallengeSpec ->
+  RunInteractive ->
   -- | custom puzzle input
   String ->
   IO ()
-execSolutionWith_ cb cs = void . execSolutionWith cb cs
+execSolutionWith_ ri = void . execSolutionWith ri
 
 -- | Result-suppressing version of 'testSolution'.
-testSolution_ :: ChallengeBundle -> ChallengeSpec -> IO ()
-testSolution_ cb = void . testSolution cb
+testSolution_ :: RunInteractive -> IO ()
+testSolution_ = void . testSolution
 
 -- | Result-suppressing version of 'viewPrompt'.
-viewPrompt_ :: ChallengeBundle -> ChallengeSpec -> IO ()
-viewPrompt_ cb = void . viewPrompt cb
+viewPrompt_ :: RunInteractive -> IO ()
+viewPrompt_ = void . viewPrompt
 
 -- | Result-suppressing version of 'waitForPrompt'.
-waitForPrompt_ :: ChallengeBundle -> ChallengeSpec -> IO ()
-waitForPrompt_ cb = void . waitForPrompt cb
+waitForPrompt_ :: RunInteractive -> IO ()
+waitForPrompt_ = void . waitForPrompt
 
 -- | Result-suppressing version of 'submitSolution'.
-submitSolution_ :: ChallengeBundle -> ChallengeSpec -> IO ()
-submitSolution_ cb = void . submitSolution cb
+submitSolution_ :: RunInteractive -> IO ()
+submitSolution_ = void . submitSolution
 
 -- | Run the parser of a solution, given its 'ChallengeSpec'.
 --
@@ -199,3 +218,40 @@ eitherIO act =
   runExceptT act >>= \case
     Right x -> pure x
     Left es -> fail $ unlines es
+
+-- | As a splice like `$(fromSol 'day21)`, creates a 'RunInteractive' for
+-- usage with this module.
+--
+-- Assumes that most final 4-digit number in the module components represents
+-- the year.
+fromSol :: TH.Name -> Q TH.Exp
+fromSol nm =
+  pure $
+    TH.RecConE
+      'RI
+      [ ('_riYear, TH.LitE (TH.IntegerL year)),
+        ( '_riSpec,
+          TH.RecConE
+            'CS
+            [ ('_csDay, dExp),
+              ('_csPart, pExp)
+            ]
+        ),
+        ('_riSolution, TH.VarE nm)
+      ]
+  where
+    CS d p = solSpecStr_ (nameBase nm)
+    dExp = TH.AppE (TH.VarE 'mkDay_) (TH.LitE (TH.IntegerL (dayInt d)))
+    pExp = case p of
+      Part1 -> TH.ConE 'Part1
+      Part2 -> TH.ConE 'Part2
+    year :: Integer
+    year =
+      read
+        . fromMaybe (error "Expected 4-digit number in module name")
+        . listToMaybe
+        . reverse
+        . words
+        . map (\c -> if isDigit c then c else ' ')
+        . fromMaybe (error "Identifier neesd a module")
+        $ nameModule nm
