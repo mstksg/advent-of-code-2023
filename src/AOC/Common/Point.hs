@@ -37,6 +37,7 @@ module AOC.Common.Point (
   , memoPoint
   , boundingBox
   , boundingBox'
+  , fillBoundingBox'
   , inBoundingBox
   , minCorner, minCorner'
   , contiguousRegions
@@ -116,6 +117,13 @@ boundingBox = (\(T2 (Ap mn) (Ap mx)) -> V2 (getMin <$> mn) (getMax <$> mx))
 boundingBox' :: (Foldable f, Applicative g, Ord a) => f (g a) -> Maybe (V2 (g a))
 boundingBox' = fmap boundingBox . NE.nonEmpty . toList
 
+fillBoundingBox'
+    :: (Foldable f, Applicative g, Num a, Ord a, Ord (g a), Traversable g, Enum a)
+    => f (g a) -> Set (g a)
+fillBoundingBox' ps = case boundingBox' ps of
+  Nothing -> S.empty
+  Just (V2 mins maxs) -> S.fromList $ sequenceA $ liftA2 enumFromTo mins maxs
+
 minCorner :: (Foldable1 f, Applicative g, Ord a) => f (g a) -> g a
 minCorner = fmap getMin . getAp . foldMap1 (Ap . fmap Min)
 
@@ -137,7 +145,6 @@ shiftToZero'
 shiftToZero' ps = case minCorner' ps of
     Nothing -> ps
     Just mn -> S.mapMonotonic (liftA2 subtract mn) ps
-
 
 inBoundingBox
     :: (Applicative g, Foldable g, Ord a)
