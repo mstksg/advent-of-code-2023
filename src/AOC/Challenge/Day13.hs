@@ -21,6 +21,7 @@ import Data.IntMap (IntMap)
 import qualified Data.IntMap as IM
 import Data.IntSet (IntSet)
 import qualified Data.IntSet as IS
+import Data.List (find)
 import Data.List.Split (splitOn)
 import Data.Maybe (listToMaybe)
 import Data.Set (Set)
@@ -61,8 +62,10 @@ day13a =
 
 findSmudge :: Set Point -> Maybe Int
 findSmudge pts = flip firstJust (fillBoundingBox' pts) \pt ->
-  let newRefl = IS.fromList $ findRefl (over (contains pt) not pts)
-   in fst <$> IS.minView (newRefl `IS.difference` origRefl)
+  find (`IS.notMember` origRefl)
+    . findRefl
+    . over (contains pt) not
+    $ pts
   where
     origRefl = IS.fromList $ findRefl pts
 
