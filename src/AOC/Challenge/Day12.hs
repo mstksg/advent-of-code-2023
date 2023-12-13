@@ -24,12 +24,13 @@ module AOC.Challenge.Day12
   ( day12a,
     day12b,
     combosOf,
+    eater,
   )
 where
 
 import AOC.Prelude
-import Data.Bitraversable
 import Control.Monad.Writer
+import Data.Bitraversable
 import qualified Data.Graph.Inductive as G
 import qualified Data.IntMap as IM
 import qualified Data.IntSet as IS
@@ -39,6 +40,8 @@ import qualified Data.List.PointedList.Circular as PLC
 import qualified Data.Map as M
 import qualified Data.OrdPSQ as PSQ
 import qualified Data.Sequence as Seq
+import Data.Sequence.NonEmpty (NESeq)
+import qualified Data.Sequence.NonEmpty as NESeq
 import qualified Data.Set as S
 import qualified Data.Text as T
 import qualified Data.Vector as V
@@ -78,14 +81,15 @@ expandOut = fmap (map rematch . fmap concat) . traverse $ \(i, b) -> case b of
   Just x -> [[(i, x)]]
   where
     -- rematch [] = []
-    rematch ((i,x0):xs) = go i x0 xs
+    rematch ((i, x0) : xs) = go i x0 xs
       where
         go !n x = \case
-          [] -> [(n,x)]
-          (j,y):ys
+          [] -> [(n, x)]
+          (j, y) : ys
             | x == y -> go (n + j) x ys
-            | otherwise -> (n,x) : go j y ys
-    -- rematch = map (\qs -> (length qs, head qs)) . group . concatMap (\(i, x) -> replicate i x)
+            | otherwise -> (n, x) : go j y ys
+
+-- rematch = map (\qs -> (length qs, head qs)) . group . concatMap (\(i, x) -> replicate i x)
 
 -- expandOutMatches :: [Int] -> [(Int, Maybe Bool)] -> Int
 --   -- [[(Int, Bool)]]
@@ -130,17 +134,17 @@ chunkUp = go
   where
     go = \case
       [] -> []
-      Just False:xs -> go xs
-      Just True:xs -> eatUp (Seq.singleton True) xs
-      Nothing:xs -> eatUp (Seq.singleton False) xs
+      Just False : xs -> go xs
+      Just True : xs -> eatUp (Seq.singleton True) xs
+      Nothing : xs -> eatUp (Seq.singleton False) xs
     eatUp qs = \case
       [] -> [qs]
-      Just False:xs -> qs : go xs
-      Just True:xs -> eatUp (qs Seq.:|> True) xs
-      Nothing:xs -> eatUp (qs Seq.:|> False) xs
+      Just False : xs -> qs : go xs
+      Just True : xs -> eatUp (qs Seq.:|> True) xs
+      Nothing : xs -> eatUp (qs Seq.:|> False) xs
 
 chunkPatterns :: Seq Bool -> Set [Int]
-chunkPatterns = S.fromList . map reChunk . traverse (\case True -> [True]; False -> [False,True])
+chunkPatterns = S.fromList . map reChunk . traverse (\case True -> [True]; False -> [False, True])
   where
     reChunk :: Seq Bool -> [Int]
     reChunk = traceShowId . map length . filter (not . null) . splitOn [False] . toList
@@ -158,38 +162,86 @@ chunkPatterns = S.fromList . map reChunk . traverse (\case True -> [True]; False
 --         -- [ _
 --         -- ]
 
--- eatUp
---   :: [Bool]
---   -> [Seq Bool]
---   -> Int
--- eatUp = \case
---     [] -> \case
---       [] -> 1
---       _:_ -> 0
---     n:ns -> \case
---       [] -> 0
---       x:xs -> product do
---         n' <- eatUp 
+-- | Given a run and a seq, how many was could the Seq be eaten by the run.
+-- Note that we go this way and not the other way around because runs can
+-- leave incomplete sequences but not vice versa, since runs cannot go past
+-- sequence boundaries.
+--
+-- Just = run was used up, Nothing = seq consumed but run was skipped (ie, all False)
+eater ::
+  Int ->
+  Seq Bool ->
+  Set (Maybe (Seq Bool))
+eater n xs
+  | n <= 0 = case xs of
+      True :<| _ -> S.empty
+      False :<| ys -> S.singleton $ Just ys
+      Seq.Empty -> S.singleton $ Just Seq.Empty
+  | otherwise = case xs of
+      Seq.Empty -> S.singleton Nothing
+      False :<| ys -> eater (n - 1) ys <> eater n ys
+      True :<| ys -> eater (n - 1) ys
 
+-- | Ways the seq could be eaten by the run.  If False, the seq was eaten up
+-- but the run was not used (ie, a string of wildcards)
+eatState ::
+  -- | positive
+  Int ->
+  StateT [NESeq Bool] [] Bool
+eatState n = StateT \case
+  [] -> [(False, [])]
+  x : xs -> do
+    res <- toList $ eater n (NESeq.toSeq x)
+    case res of
+      Nothing -> [(False, xs)]
+      Just x' ->
+        [ ( True,
+            case NESeq.nonEmptySeq x' of
+              Nothing -> xs
+              Just x'' -> x'' : xs
+          )
+        ]
+
+eatRuns ::
+  [Int] ->
+  [NESeq Bool] ->
+  Int
+eatRuns ns0 = length . evalStateT (go ns0)
+  where
+    go = \case
+      [] -> do
+        allFalse <- gets (all (all not))
+        guard allFalse
+      n : ns -> do
+        guard =<< gets (not . null)
+        eaten <- eatState n
+        let ns'
+              | eaten = ns
+              | otherwise = n : ns
+        go ns'
+        -- gets null >>= \case
+        --   True -> if null ns' then pure () else lift mempty
+        --   False -> go ns'
 
 day12b :: _ :~> _
 day12b =
   MkSol
     { sParse = sParse day12a,
       sShow = show,
-      sSolve = noFail $
-        map $ \(xs :: [Maybe Bool], pat :: [Int]) ->
+      sSolve =
+        traverse $ \(xs :: [Maybe Bool], pat :: [Int]) ->
           -- fmap sum . map $ \(xs :: [Maybe Bool], pat :: [Int]) ->
           let pat' :: [Int]
               pat' = concat $ replicate 5 pat
               xs' :: [Maybe Bool]
               xs' = intercalate [Nothing] $ replicate 5 xs
-          in  chunkUp xs
-           -- in countTrue (matchesPat pat') $
-           --      expandOut . map (\qs -> (length qs, head qs)) $
-           --        group xs'
-                  -- countTrue ((== pat') . classify) $
-                  --        traverse (\case Nothing -> [False,True]; Just x -> [x]) xs'
+           in eatRuns pat <$> traverse NESeq.nonEmptySeq (chunkUp xs)
+          -- in  runStateT (eatState (head pat)) <$> traverse NESeq.nonEmptySeq (chunkUp xs)
+          -- in countTrue (matchesPat pat') $
+          --      expandOut . map (\qs -> (length qs, head qs)) $
+          --        group xs'
+          -- countTrue ((== pat') . classify) $
+          --        traverse (\case Nothing -> [False,True]; Just x -> [x]) xs'
     }
   where
     matchesPat pat = (== pat) . map fst . filter snd
