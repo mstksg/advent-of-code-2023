@@ -56,7 +56,7 @@ data a :~> b = MkSol
 noFail :: (a -> b) -> a -> Maybe b
 noFail f = Just . f
 
-traverseSum :: (Traversable f, Num b) => (a -> Maybe b) -> f a -> Maybe b
+traverseSum :: (Traversable f, Applicative g, Num b) => (a -> g b) -> f a -> g b
 traverseSum f = fmap sum . traverse f
 
 -- | Wrap an @a ':~>' b@ and hide the type variables so we can put
