@@ -270,10 +270,11 @@ fromSol nm =
     year :: Integer
     year =
       read
-        . fromMaybe (error "Expected 4-digit number in module name")
+        . fromMaybe (error "Expected 4-digit number in module name chain")
         . listToMaybe
         . reverse
+        . filter ((== 4) . length)
         . words
         . map (\c -> if isDigit c then c else ' ')
-        . fromMaybe (error "Identifier neesd a module")
+        . fromMaybe (error "Identifier needs a module")
         $ nameModule nm
