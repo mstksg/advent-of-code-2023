@@ -14,6 +14,7 @@ module AOC.Run.Interactive
 
     -- ** Return Answers
     execSolution,
+    lockSolution,
     execSolutionWith,
     testSolution,
     testSolutionOnly,
@@ -23,6 +24,7 @@ module AOC.Run.Interactive
 
     -- ** No Answers
     execSolution_,
+    lockSolution_,
     execSolutionWith_,
     testSolution_,
     testSolutionOnly_,
@@ -75,16 +77,30 @@ riChallengeBundle RI {..} =
           (M.singleton (_csPart _riSpec) _riSolution)
     }
 
+-- | Interactively call 'mainRun'.
+runInteractive :: MainRunOpts -> RunInteractive -> ExceptT [String] IO (Maybe Bool, Either [String] String)
+runInteractive mro ri@RI {..} = do
+  cfg <- liftIO $ configFile defConfPath
+  out <- mainRun (riChallengeBundle ri) cfg mro
+  maybeToEither ["Result not found in result map (Internal Error)"] $
+    M.lookup _riSpec out
+
 -- | Run the solution indicated by the challenge spec on the official
 -- puzzle input.  Get answer as result.
 execSolution :: RunInteractive -> IO String
-execSolution ri@RI {..} = eitherIO $ do
-  cfg <- liftIO $ configFile defConfPath
-  out <- mainRun (riChallengeBundle ri) cfg . defaultMRO $ TSPart _riSpec
-  res <-
-    maybeToEither ["Result not found in result map (Internal Error)"] $
-      M.lookup _riSpec out
-  liftEither $ snd res
+execSolution ri@RI {..} = eitherIO do
+  (_, res) <- runInteractive (defaultMRO (TSPart _riSpec)) ri
+  liftEither res
+
+-- | Run the solution indicated by the challenge spec on the official
+-- puzzle input, and lock the answer as correct.  Get answer as result.
+lockSolution :: RunInteractive -> IO String
+lockSolution ri@RI {..} = eitherIO do
+  (_, res) <-
+    runInteractive
+      (defaultMRO (TSPart _riSpec)) {_mroLock = True}
+      ri
+  liftEither res
 
 -- | Run the solution indicated by the challenge spec on a custom input.
 -- Get answer as result.
@@ -93,52 +109,30 @@ execSolutionWith ::
   -- | custom puzzle input
   String ->
   IO String
-execSolutionWith ri@RI {..} inp = eitherIO $ do
-  cfg <- liftIO $ configFile defConfPath
-  out <-
-    mainRun (riChallengeBundle ri) cfg $
-      (defaultMRO (TSPart _riSpec))
-        { _mroInput = \_ -> pure $ Just inp
-        }
-  res <-
-    maybeToEither ["Result not found in result map (Internal Error)"] $
-      M.lookup _riSpec out
-  liftEither $ snd res
+execSolutionWith ri@RI {..} inp = eitherIO do
+  (_, res) <-
+    runInteractive
+      (defaultMRO (TSPart _riSpec)) {_mroInput = \_ -> pure $ Just inp}
+      ri
+  liftEither res
 
 -- | Run test suite for a given challenge spec.
 --
 -- Returns 'Just' if any tests were run, with a 'Bool' specifying whether
 -- or not all tests passed.
 testSolution :: RunInteractive -> IO (Maybe Bool)
-testSolution ri@RI {..} = eitherIO $ do
-  cfg <- liftIO $ configFile defConfPath
-  out <-
-    mainRun (riChallengeBundle ri) cfg $
-      (defaultMRO (TSPart _riSpec))
-        { _mroTest = True
-        }
-  res <-
-    maybeToEither ["Result not found in result map (Internal Error)"] $
-      M.lookup _riSpec out
-  pure $ fst res
+testSolution ri@RI {..} =
+  eitherIO $
+    fst <$> runInteractive (defaultMRO (TSPart _riSpec)) {_mroTest = True} ri
 
 -- | Run test suite for a given challenge spec, and NOT the actual input.
 --
 -- Returns 'Just' if any tests were run, with a 'Bool' specifying whether
 -- or not all tests passed.
 testSolutionOnly :: RunInteractive -> IO (Maybe Bool)
-testSolutionOnly ri@RI {..} = eitherIO $ do
-  cfg <- liftIO $ configFile defConfPath
-  out <-
-    mainRun (riChallengeBundle ri) cfg $
-      (defaultMRO (TSPart _riSpec))
-        { _mroActual = False,
-          _mroTest = True
-        }
-  res <-
-    maybeToEither ["Result not found in result map (Internal Error)"] $
-      M.lookup _riSpec out
-  pure $ fst res
+testSolutionOnly ri@RI {..} =
+  eitherIO $
+    fst <$> runInteractive (defaultMRO (TSPart _riSpec)) {_mroTest = True, _mroActual = False} ri
 
 -- | View the prompt for a given challenge spec.
 viewPrompt :: RunInteractive -> IO Text
@@ -170,6 +164,10 @@ submitSolution ri@RI {..} = eitherIO $ do
 -- | Result-suppressing version of 'execSolution'.
 execSolution_ :: RunInteractive -> IO ()
 execSolution_ = void . execSolution
+
+-- | Result-suppressing version of 'lockSolution'.
+lockSolution_ :: RunInteractive -> IO ()
+lockSolution_ = void . lockSolution
 
 -- | Result-suppressing version of 'execSolutionWith'.
 execSolutionWith_ ::

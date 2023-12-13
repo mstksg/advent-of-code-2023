@@ -81,7 +81,7 @@ data TestSpec
 -- | Options for 'mainRun'.
 data MainRunOpts = MRO
   { _mroSpec :: !TestSpec,
-    -- | Run input?  (Defualt: True
+    -- | Run input?  (Defualt: True)
     _mroActual :: !Bool,
     -- | Run tests?  (Default: False)
     _mroTest :: !Bool,
