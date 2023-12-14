@@ -223,6 +223,9 @@ eater n xs
       False :<| _ -> Just i
       True :<| _ -> Nothing
 
+-- maybe we need a new version of this that can chomp on both, and gives
+-- [[Int]]. and it will say which of the ones it was blocked on
+
 -- _ <$> Seq.tails (drop n xs)
 
 -- case Seq.elemIndexL True xs of
@@ -462,7 +465,7 @@ eatRuns3 ns0 = sum . runMultiplicity (go ns0)
     go = \case
       [] -> Multiplicity \s ->
         if all (all not) s
-          then M.singleton s 1
+          then M.singleton [] 1
           else M.empty
       n : ns -> Multiplicity \case
         [] -> M.empty
