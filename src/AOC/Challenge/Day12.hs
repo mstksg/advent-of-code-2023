@@ -435,13 +435,16 @@ mPlus :: (Ord a) => Multiplicity a -> Multiplicity a -> Multiplicity a
 mPlus (Multiplicity f) (Multiplicity g) = Multiplicity \x ->
   M.unionWith (+) (f x) (g x)
 
+traceSize :: Multiplicity a -> Multiplicity a
+traceSize (Multiplicity f) = Multiplicity ((\q -> traceShow (M.elems q) q). f)
+
 eatState3 ::
   -- | positive
   Int ->
   Multiplicity [NESeq Bool]
 eatState3 n = Multiplicity \case
-  [] -> M.singleton [] 1
-  x : xs ->
+  -- [] -> M.singleton [] 1
+  ~(x : xs) ->
     let x' = NESeq.toSeq x
      in M.fromListWith (+) . map (,1) $ do
           i <- eater n x'
@@ -461,15 +464,26 @@ eatRuns3 ns0 = sum . runMultiplicity (go ns0)
         if all (all not) s
           then M.singleton s 1
           else M.empty
-      n : ns ->
-        ( (go ns <> eatState3 n)
-            `mPlus` Multiplicity \case
-              [] -> M.empty
-              x : xs
-                | all not x -> runMultiplicity (go (n : ns)) xs
-                | otherwise -> M.empty
-        )
-          <> Multiplicity \x -> if not (null x) then M.singleton x 1 else M.empty
+      n : ns -> Multiplicity \case
+        [] -> M.empty
+        x:xs
+          | all not x -> M.unionWith (+)
+                  (runMultiplicity (go ns <> eatState3 n) (x:xs))
+                  (runMultiplicity (go (n:ns)) xs)
+          | otherwise -> runMultiplicity (go ns <> eatState3 n) (x:xs)
+
+        -- if not (null s)
+        --    then runMultiplicity
+        --           ( (go ns <> eatState3 n)
+        --               `mPlus` Multiplicity \case
+        --                 [] -> M.empty
+        --                 x : xs
+        --                   | all not x -> runMultiplicity (go (n : ns)) xs
+        --                   | otherwise -> M.empty
+        --           ) s
+        --    else M.empty
+        -- -- traceSize $
+        -- --   <> Multiplicity \x -> if not (null x) then M.singleton x 1 else M.empty
 
 -- smGets (not . null) `smBind` \hasMore ->
 --   smGuard hasMore `smBind` \_ ->
