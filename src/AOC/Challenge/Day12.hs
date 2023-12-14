@@ -511,7 +511,7 @@ expandQueue = \case
     [] -> Right 0
     x:xs ->
       let x' = NESeq.toSeq x
-          eatBranch = 
+          eatBranch =
            M.fromListWith (+)
               [ ((ns, xs'), 1)
                 | i <- eater n x'
@@ -567,6 +567,9 @@ eatRuns4 p0 x0 = go 0 (M.singleton (p0, x0) 1)
         Right res -> go (ways + res*m) queue'
 
 
+-- new problem:
+-- ??????.???????? 1,1,1,1,1
+
 day12b :: _ :~> _
 day12b =
   MkSol
@@ -580,7 +583,7 @@ day12b =
               xs' :: [Maybe Bool]
               xs' = intercalate [Nothing] $ replicate 5 xs
            in -- in traverse NESeq.nonEmptySeq (chunkUp xs)
-              Just $ traceShowId $ solve4 xs' pat'
+              Just $ traceShowId $ solve5 xs' pat'
               -- in Just . length . eatRuns pat $ chunkUp xs
               -- in  runStateT (eatState (head pat)) <$> traverse NESeq.nonEmptySeq (chunkUp xs)
               -- in countTrue (matchesPat pat') $
