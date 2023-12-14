@@ -511,7 +511,7 @@ expandQueue = \case
     [] -> Right 0
     x:xs ->
       let x' = NESeq.toSeq x
-          eatBranch =
+          eatBranch = 
            M.fromListWith (+)
               [ ((ns, xs'), 1)
                 | i <- eater n x'
@@ -523,6 +523,35 @@ expandQueue = \case
             | all not x = M.singleton (n:ns, xs) 1
             | otherwise = M.empty
        in Left $ M.unionWith (+) eatBranch skipBranch
+
+-- expandQueue ::
+--   NonEmpty Int ->
+--   NonEmpty (NESeq Bool) ->
+--   Either PatQueue Int
+-- expandQueue (n :| ns) (x :| xs) = case NE.nonEmpty ns of
+--     Nothing -> Right $ sum
+--       [ 1
+--         | i <- eater n x'
+--         , all (all not) $ case NESeq.nonEmptySeq (Seq.drop (i + n + 1) x') of
+--            Nothing -> xs
+--            Just x'' -> x'' : xs
+--       ]
+--     Just ns' -> Left
+--       let eatBranch =
+--             M.fromListWith
+--               (+)
+--               [ ((ns', xs'), 1)
+--                 | i <- eater n x',
+--                   xs' <- maybeToList case NESeq.nonEmptySeq (Seq.drop (i + n + 1) x') of
+--                     Nothing -> NE.nonEmpty xs
+--                     Just x'' -> Just $ x'' :| xs
+--               ]
+--        in M.unionWith (+) eatBranch skipBranch
+--   where
+--     x' = NESeq.toSeq x
+--     skipBranch = case NE.nonEmpty xs of
+--       Just xs' | all not x -> M.singleton (n :| ns, xs') 1
+--       _ -> M.empty
 
 eatRuns4 ::
   [Int] ->
@@ -551,7 +580,7 @@ day12b =
               xs' :: [Maybe Bool]
               xs' = intercalate [Nothing] $ replicate 5 xs
            in -- in traverse NESeq.nonEmptySeq (chunkUp xs)
-              Just $ traceShowId $ solve5 xs' pat'
+              Just $ traceShowId $ solve4 xs' pat'
               -- in Just . length . eatRuns pat $ chunkUp xs
               -- in  runStateT (eatState (head pat)) <$> traverse NESeq.nonEmptySeq (chunkUp xs)
               -- in countTrue (matchesPat pat') $
