@@ -494,6 +494,31 @@ eatRuns3 ns0 = sum . runMultiplicity (go ns0)
 --       True -> go ns
 --       False -> go (n : ns)
 
+type PatQueue = Map ([Int], [NESeq Bool]) Int
+
+expandQueue
+    :: [Int]
+    -> [NESeq Bool]
+    -> Either PatQueue Int
+expandQueue = \case
+  [] -> \s -> Right $ if all (all not) s then 1 else 0
+  n:ns -> \case
+    [] -> Right 0
+    x:xs ->
+      let x' = NESeq.toSeq x
+          eatBranch = 
+           M.fromListWith (+)
+              [ ((ns, xs'), 1)
+                | i <- eater n x'
+              , let xs' = case NESeq.nonEmptySeq (Seq.drop (i + n + 1) x') of
+                      Nothing -> xs
+                      Just x'' -> x'' : xs
+              ]
+          skipBranch
+            | all not x = M.singleton (n:ns, xs) 1
+            | otherwise = M.empty
+       in Left $ M.unionWith (+) eatBranch skipBranch
+
 day12b :: _ :~> _
 day12b =
   MkSol
