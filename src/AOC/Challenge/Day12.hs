@@ -40,7 +40,7 @@ import qualified Data.IntSet as IS
 import qualified Data.List.NonEmpty as NE
 import qualified Data.List.PointedList as PL
 import qualified Data.List.PointedList.Circular as PLC
-import qualified Data.Map as M
+import qualified Data.Map.Strict as M
 import qualified Data.OrdPSQ as PSQ
 import qualified Data.Sequence as Seq
 import Data.Sequence.NonEmpty (NESeq)
@@ -569,6 +569,8 @@ eatRuns4 p0 x0 = go 0 (M.singleton (p0, x0) 1)
 
 -- new problem:
 -- ??????.???????? 1,1,1,1,1
+-- yeah the next step might just be to upgrade 'eater' to eat both lengths and
+-- tiles, isntead of only a single length.
 
 day12b :: _ :~> _
 day12b =
