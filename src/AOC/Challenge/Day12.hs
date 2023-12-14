@@ -110,16 +110,21 @@ expandOut = fmap (map rematch . fmap concat) . traverse $ \(i, b) -> case b of
 --   -- Just x  -> [[(i, x)]]
 
 solve1 :: [Maybe Bool] -> [Int] -> Int
-solve1 xs pat = countTrue ((== pat) . classify) $
-            traverse (\case Nothing -> [False, True]; Just x -> [x]) xs
+solve1 xs pat =
+  countTrue ((== pat) . classify) $
+    traverse (\case Nothing -> [False, True]; Just x -> [x]) xs
 
 solve2 :: [Maybe Bool] -> [Int] -> Int
 solve2 xs pat = length . eatRuns pat $ chunkUp xs
 
 solve3 :: [Maybe Bool] -> [Int] -> Int
 solve3 xs pat = eatRuns2 pat $ chunkUp xs
-  -- countTrue ((== pat) . classify) $
-  --           traverse (\case Nothing -> [False, True]; Just x -> [x]) xs
+
+solve4 :: [Maybe Bool] -> [Int] -> Int
+solve4 xs pat = eatRuns3 pat $ chunkUp xs
+
+-- countTrue ((== pat) . classify) $
+--           traverse (\case Nothing -> [False, True]; Just x -> [x]) xs
 
 day12a :: _ :~> _
 day12a =
@@ -132,22 +137,23 @@ day12a =
           )
           . lines,
       sShow = show,
-      sSolve = noFail $
+      sSolve =
+        noFail $
           -- map (\(a,b) -> (solve1 a b, solve2 a b))
-          sum . map (uncurry solve3)
-      -- sSolve = noFail $
-        -- fmap sum . map $ \(xs :: [Maybe Bool], pat :: [Int]) ->
-        --   countTrue ((== pat) . classify) $
-        --     traverse (\case Nothing -> [False, True]; Just x -> [x]) xs
-      -- sSolve =
-      --   fmap (fmap sum) . traverse $ \(xs :: [Maybe Bool], pat :: [Int]) ->
-      --     -- fmap sum . map $ \(xs :: [Maybe Bool], pat :: [Int]) ->
-      --     let pat' :: [Int]
-      --         pat' = concat $ replicate 5 pat
-      --         xs' :: [Maybe Bool]
-      --         xs' = intercalate [Nothing] $ replicate 5 xs
-      --      -- in traverse NESeq.nonEmptySeq (chunkUp xs)
-      --      in length . eatRuns pat <$> traverse NESeq.nonEmptySeq (chunkUp xs)
+          sum . map (uncurry solve4)
+          -- sSolve = noFail $
+          -- fmap sum . map $ \(xs :: [Maybe Bool], pat :: [Int]) ->
+          --   countTrue ((== pat) . classify) $
+          --     traverse (\case Nothing -> [False, True]; Just x -> [x]) xs
+          -- sSolve =
+          --   fmap (fmap sum) . traverse $ \(xs :: [Maybe Bool], pat :: [Int]) ->
+          --     -- fmap sum . map $ \(xs :: [Maybe Bool], pat :: [Int]) ->
+          --     let pat' :: [Int]
+          --         pat' = concat $ replicate 5 pat
+          --         xs' :: [Maybe Bool]
+          --         xs' = intercalate [Nothing] $ replicate 5 xs
+          --      -- in traverse NESeq.nonEmptySeq (chunkUp xs)
+          --      in length . eatRuns pat <$> traverse NESeq.nonEmptySeq (chunkUp xs)
     }
 
 -- .??..??...?##..??..??...?##..??..??...?##..??..??...?##..??..??...?##.
@@ -202,97 +208,98 @@ chunkPatterns = S.fromList . map reChunk . traverse (\case True -> [True]; False
 eater ::
   Int ->
   Seq Bool ->
-    [Int]       -- ^ the max point where you can eat up to
+  -- | the max point where you can eat up to
+  [Int]
 eater n xs
-    | Seq.length xs < n = []
-    | otherwise = mapMaybe (uncurry go) $ zip
-        [0 .. Seq.length (Seq.takeWhileL not xs)]
-        (toList $ Seq.tails (Seq.drop n xs))
+  | Seq.length xs < n = []
+  | otherwise =
+      mapMaybe (uncurry go) $
+        zip
+          [0 .. Seq.length (Seq.takeWhileL not xs)]
+          (toList $ Seq.tails (Seq.drop n xs))
   where
     go i = \case
       Seq.Empty -> Just i
       False :<| _ -> Just i
       True :<| _ -> Nothing
 
+-- _ <$> Seq.tails (drop n xs)
 
-    -- _ <$> Seq.tails (drop n xs)
+-- case Seq.elemIndexL True xs of
+-- -- only in this case can we go up to the very end
+-- Nothing -> IS.fromList [0 .. Seq.length xs - n]
+-- Just i ->
+-- -- really only need to filter where the next one after is False
+--   let -- | In this case we have to stop one shy
+--       wildRun = IS.fromList [0 .. i - n - 1]
+--       fixedRun = IS.fromList [ i - n .. Seq.length xs - n ]
+--       rest = Seq.drop i xs
+--       -- 0123456789
+--       -- 0000110000
+--       --     123456
+--       rests = take (Seq.length xs - i + 1) Seq.tails rest
+--       -- the range exists, and either goes to the end of the seq or the next
+--       -- one after is False
+--   in  if
 
-  -- case Seq.elemIndexL True xs of
-  -- -- only in this case can we go up to the very end
-  -- Nothing -> IS.fromList [0 .. Seq.length xs - n]
-  -- Just i ->
-  -- -- really only need to filter where the next one after is False
-  --   let -- | In this case we have to stop one shy
-  --       wildRun = IS.fromList [0 .. i - n - 1]
-  --       fixedRun = IS.fromList [ i - n .. Seq.length xs - n ]
-  --       rest = Seq.drop i xs
-  --       -- 0123456789
-  --       -- 0000110000
-  --       --     123456
-  --       rests = take (Seq.length xs - i + 1) Seq.tails rest
-  --       -- the range exists, and either goes to the end of the seq or the next
-  --       -- one after is False
-  --   in  if
+-- case Seq.elemIndexL False rest of
+--       Nothing
+--         | Seq.length rest > n -> IS.empty
+--       -- 012345
+--       -- 000011
+--       --  ^^^
+--       --  543
+--         | otherwise -> IS.fromList [ i - n + Seq.length rest - 1 .. Seq.length xs - 1 ]
+--       Just j
+--         | j > n -> IS.empty
+--       -- 0123456789
+--       -- 0000110000
+--       --  5432
+--       --       2345
+--       --     55555
+--       --     4444
+--       --     333
+--       --     22
+--       --  requirement is that the next one after must be False
+--         | otherwise -> IS.fromList $
+--             flip filter [ i - n .. Seq.length xs - n] \k ->
+--               case Seq.lookup (k + n + 1) of
+--                 Nothing -> _
+--                 Just False -> True
+--                 Just True -> False
 
-    -- case Seq.elemIndexL False rest of
-    --       Nothing
-    --         | Seq.length rest > n -> IS.empty
-    --       -- 012345
-    --       -- 000011
-    --       --  ^^^
-    --       --  543
-    --         | otherwise -> IS.fromList [ i - n + Seq.length rest - 1 .. Seq.length xs - 1 ]
-    --       Just j
-    --         | j > n -> IS.empty
-    --       -- 0123456789
-    --       -- 0000110000
-    --       --  5432
-    --       --       2345
-    --       --     55555
-    --       --     4444
-    --       --     333
-    --       --     22
-    --       --  requirement is that the next one after must be False
-    --         | otherwise -> IS.fromList $
-    --             flip filter [ i - n .. Seq.length xs - n] \k ->
-    --               case Seq.lookup (k + n + 1) of
-    --                 Nothing -> _
-    --                 Just False -> True
-    --                 Just True -> False
-
-  -- where
-  --   wildRun = Seq.length $ Seq.takeWhileL not xs
-  --   wildElems = IS.fromList [ 0 .. wildRun - n - 1]
-  --   fixedRun = Seq.length $ Seq.takeWhileL id (Seq.drop wildRun xs)
-  --   fixedElems
-  --     | fixedRun > n = IS.empty
-  --     | otherwise = IS.fromList [ 0 .. ]
-    -- case Seq.elemIndexL True xs of
-  -- Nothing -> IS.fromList [0 .. Seq.length xs - n]
-  -- Just i ->
-    -- let rest = Seq.drop i xs
-    --     restTrue = case Seq.elemIndexL
-    --  in IS.fromList [ 0 .. i - n - 1 ]
+-- where
+--   wildRun = Seq.length $ Seq.takeWhileL not xs
+--   wildElems = IS.fromList [ 0 .. wildRun - n - 1]
+--   fixedRun = Seq.length $ Seq.takeWhileL id (Seq.drop wildRun xs)
+--   fixedElems
+--     | fixedRun > n = IS.empty
+--     | otherwise = IS.fromList [ 0 .. ]
+-- case Seq.elemIndexL True xs of
+-- Nothing -> IS.fromList [0 .. Seq.length xs - n]
+-- Just i ->
+-- let rest = Seq.drop i xs
+--     restTrue = case Seq.elemIndexL
+--  in IS.fromList [ 0 .. i - n - 1 ]
 
 -- sizeUntil :: a -> Seq a -> Int
 -- sizeUntil x
 
-         -- <> case Seq.elemIndexL False rest of
-         --      Nothing -> undefined
-         --      Just j
-         --        | j <= n -> _
-         --        | otherwise -> _
-  -- where
-  --   firstTrue = Seq.elemIndexL
+-- <> case Seq.elemIndexL False rest of
+--      Nothing -> undefined
+--      Just j
+--        | j <= n -> _
+--        | otherwise -> _
+-- where
+--   firstTrue = Seq.elemIndexL
 
-
-  -- | n <= 0 = case xs of
-  --     True :<| _ -> IS.empty
-  --     _ -> IS.singleton 0
-  -- | otherwise = case xs of
-  --     Seq.Empty -> IS.empty
-  --     False :<| ys -> eater (n - 1) ys <> IS.mapMonotonic (+1) (eater n ys)
-  --     True :<| ys -> eater (n - 1) ys
+-- \| n <= 0 = case xs of
+--     True :<| _ -> IS.empty
+--     _ -> IS.singleton 0
+-- \| otherwise = case xs of
+--     Seq.Empty -> IS.empty
+--     False :<| ys -> eater (n - 1) ys <> IS.mapMonotonic (+1) (eater n ys)
+--     True :<| ys -> eater (n - 1) ys
 
 -- | Ways the seq could be eaten by the run.  If False, the seq was eaten up
 -- but the run was not used (ie, a string of wildcards)
@@ -310,17 +317,17 @@ eatState n = StateT \case
           i <- eater n x'
           pure
             ( True,
-               case NESeq.nonEmptySeq (Seq.drop (i + n + 1) x') of
-                 Nothing -> xs
-                 Just x'' -> x'' : xs
+              case NESeq.nonEmptySeq (Seq.drop (i + n + 1) x') of
+                Nothing -> xs
+                Just x'' -> x'' : xs
             )
-    in  eatBranch <|> skipBranch
+     in eatBranch <|> skipBranch
 
 -- ????????#??? 2,3
 
 newtype StateMultiplicity s a = StateMultiplicity
-    { runStateMultiplicity :: s -> Map (a, s) Int
-    }
+  { runStateMultiplicity :: s -> Map (a, s) Int
+  }
 
 smGuard :: Bool -> StateMultiplicity s ()
 smGuard False = StateMultiplicity $ const M.empty
@@ -330,13 +337,15 @@ smGets :: (s -> a) -> StateMultiplicity s a
 smGets f = StateMultiplicity \x -> M.singleton (f x, x) 1
 
 infixl 1 `smBind`
+
 smBind :: (Ord s, Ord b) => StateMultiplicity s a -> (a -> StateMultiplicity s b) -> StateMultiplicity s b
 smBind (StateMultiplicity x) f = StateMultiplicity \s ->
-    M.fromListWith (+)
-      [ ((z, s''), i * j)
-        | ((y, s'), i) <- M.toList $ x s
-      , ((z, s''), j) <- M.toList $ runStateMultiplicity (f y) s'
-      ]
+  M.fromListWith
+    (+)
+    [ ((z, s''), i * j)
+      | ((y, s'), i) <- M.toList $ x s,
+        ((z, s''), j) <- M.toList $ runStateMultiplicity (f y) s'
+    ]
 
 -- newtype Multiplicity a = Multiplicity { runMultiplicity :: Map a Int }
 
@@ -344,7 +353,8 @@ smBind (StateMultiplicity x) f = StateMultiplicity \s ->
 -- but the run was not used (ie, a string of wildcards)
 eatState2 ::
   -- | positive
-  Int -> StateMultiplicity [NESeq Bool] Bool
+  Int ->
+  StateMultiplicity [NESeq Bool] Bool
 eatState2 n = StateMultiplicity \case
   [] -> M.singleton (False, []) 1
   x : xs ->
@@ -356,11 +366,11 @@ eatState2 n = StateMultiplicity \case
                 i <- eater n x'
                 pure
                   ( True,
-                     case NESeq.nonEmptySeq (Seq.drop (i + n + 1) x') of
-                       Nothing -> xs
-                       Just x'' -> x'' : xs
+                    case NESeq.nonEmptySeq (Seq.drop (i + n + 1) x') of
+                      Nothing -> xs
+                      Just x'' -> x'' : xs
                   )
-    in  M.unionWith (+) eatBranch skipBranch
+     in M.unionWith (+) eatBranch skipBranch
 
 eatRuns2 ::
   [Int] ->
@@ -372,7 +382,7 @@ eatRuns2 ns0 = sum . runStateMultiplicity (go ns0)
     go = \case
       [] -> StateMultiplicity \s ->
         if all (all not) s
-          then M.singleton ((),s) 1
+          then M.singleton ((), s) 1
           else M.empty
       n : ns ->
         smGets (not . null) `smBind` \hasMore ->
@@ -381,12 +391,11 @@ eatRuns2 ns0 = sum . runStateMultiplicity (go ns0)
               True -> go ns
               False -> go (n : ns)
 
-        -- eaten <- eatState n
-        -- let ns'
-        --       | eaten = ns
-        --       | otherwise = n : ns
-        -- go ns'
-
+-- eaten <- eatState n
+-- let ns'
+--       | eaten = ns
+--       | otherwise = n : ns
+-- go ns'
 
 eatRuns ::
   [Int] ->
@@ -408,6 +417,66 @@ eatRuns ns0 = evalStateT (go ns0)
               | otherwise = n : ns
         go ns'
 
+newtype Multiplicity a = Multiplicity {runMultiplicity :: a -> Map a Int}
+
+instance (Ord a) => Semigroup (Multiplicity a) where
+  Multiplicity f <> Multiplicity g = Multiplicity \x ->
+    M.fromListWith
+      (+)
+      [ (z, i * j)
+        | (y, i) <- M.toList $ g x,
+          (z, j) <- M.toList $ f y
+      ]
+
+instance (Ord a) => Monoid (Multiplicity a) where
+  mempty = Multiplicity (`M.singleton` 1)
+
+mPlus :: (Ord a) => Multiplicity a -> Multiplicity a -> Multiplicity a
+mPlus (Multiplicity f) (Multiplicity g) = Multiplicity \x ->
+  M.unionWith (+) (f x) (g x)
+
+eatState3 ::
+  -- | positive
+  Int ->
+  Multiplicity [NESeq Bool]
+eatState3 n = Multiplicity \case
+  [] -> M.singleton [] 1
+  x : xs ->
+    let x' = NESeq.toSeq x
+     in M.fromListWith (+) . map (,1) $ do
+          i <- eater n x'
+          pure $ case NESeq.nonEmptySeq (Seq.drop (i + n + 1) x') of
+            Nothing -> xs
+            Just x'' -> x'' : xs
+
+eatRuns3 ::
+  [Int] ->
+  [NESeq Bool] ->
+  Int
+eatRuns3 ns0 = sum . runMultiplicity (go ns0)
+  where
+    go :: [Int] -> Multiplicity [NESeq Bool]
+    go = \case
+      [] -> Multiplicity \s ->
+        if all (all not) s
+          then M.singleton s 1
+          else M.empty
+      n : ns ->
+        ( (go ns <> eatState3 n)
+            `mPlus` Multiplicity \case
+              [] -> M.empty
+              x : xs
+                | all not x -> runMultiplicity (go (n : ns)) xs
+                | otherwise -> M.empty
+        )
+          <> Multiplicity \x -> if not (null x) then M.singleton x 1 else M.empty
+
+-- smGets (not . null) `smBind` \hasMore ->
+--   smGuard hasMore `smBind` \_ ->
+--     eatState2 n `smBind` \case
+--       True -> go ns
+--       False -> go (n : ns)
+
 day12b :: _ :~> _
 day12b =
   MkSol
@@ -420,15 +489,15 @@ day12b =
               pat' = concat $ replicate 5 pat
               xs' :: [Maybe Bool]
               xs' = intercalate [Nothing] $ replicate 5 xs
-           -- in traverse NESeq.nonEmptySeq (chunkUp xs)
-           in Just $ traceShowId $ solve3 xs' pat'
-           -- in Just . length . eatRuns pat $ chunkUp xs
-          -- in  runStateT (eatState (head pat)) <$> traverse NESeq.nonEmptySeq (chunkUp xs)
-          -- in countTrue (matchesPat pat') $
-          --      expandOut . map (\qs -> (length qs, head qs)) $
-          --        group xs'
-          -- countTrue ((== pat') . classify) $
-          --        traverse (\case Nothing -> [False,True]; Just x -> [x]) xs'
+           in -- in traverse NESeq.nonEmptySeq (chunkUp xs)
+              Just $ traceShowId $ solve4 xs' pat'
+              -- in Just . length . eatRuns pat $ chunkUp xs
+              -- in  runStateT (eatState (head pat)) <$> traverse NESeq.nonEmptySeq (chunkUp xs)
+              -- in countTrue (matchesPat pat') $
+              --      expandOut . map (\qs -> (length qs, head qs)) $
+              --        group xs'
+              -- countTrue ((== pat') . classify) $
+              --        traverse (\case Nothing -> [False,True]; Just x -> [x]) xs'
     }
   where
     matchesPat pat = (== pat) . map fst . filter snd
