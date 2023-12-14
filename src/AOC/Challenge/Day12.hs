@@ -26,6 +26,8 @@ module AOC.Challenge.Day12
     combosOf,
     eatState,
     eater,
+    expandQueue,
+    eatRuns4
   )
 where
 
@@ -123,6 +125,9 @@ solve3 xs pat = eatRuns2 pat $ chunkUp xs
 solve4 :: [Maybe Bool] -> [Int] -> Int
 solve4 xs pat = eatRuns3 pat $ chunkUp xs
 
+solve5 :: [Maybe Bool] -> [Int] -> Int
+solve5 xs pat = eatRuns4 pat $ chunkUp xs
+
 -- countTrue ((== pat) . classify) $
 --           traverse (\case Nothing -> [False, True]; Just x -> [x]) xs
 
@@ -140,7 +145,7 @@ day12a =
       sSolve =
         noFail $
           -- map (\(a,b) -> (solve1 a b, solve2 a b))
-          sum . map (uncurry solve4)
+          sum . map (uncurry solve5)
           -- sSolve = noFail $
           -- fmap sum . map $ \(xs :: [Maybe Bool], pat :: [Int]) ->
           --   countTrue ((== pat) . classify) $
@@ -506,7 +511,7 @@ expandQueue = \case
     [] -> Right 0
     x:xs ->
       let x' = NESeq.toSeq x
-          eatBranch = 
+          eatBranch =
            M.fromListWith (+)
               [ ((ns, xs'), 1)
                 | i <- eater n x'
@@ -518,6 +523,20 @@ expandQueue = \case
             | all not x = M.singleton (n:ns, xs) 1
             | otherwise = M.empty
        in Left $ M.unionWith (+) eatBranch skipBranch
+
+eatRuns4 ::
+  [Int] ->
+  [NESeq Bool] ->
+  Int
+eatRuns4 p0 x0 = go 0 (M.singleton (p0, x0) 1)
+  where
+    go :: Int -> PatQueue -> Int
+    go !ways !queue = case M.minViewWithKey queue of
+      Nothing -> ways
+      Just (((p, x), m), queue') -> case expandQueue p x of
+        Left toAdd -> go ways $ M.unionWith (+) queue' ((*m) <$> toAdd)
+        Right res -> go (ways + res*m) queue'
+
 
 day12b :: _ :~> _
 day12b =
@@ -532,7 +551,7 @@ day12b =
               xs' :: [Maybe Bool]
               xs' = intercalate [Nothing] $ replicate 5 xs
            in -- in traverse NESeq.nonEmptySeq (chunkUp xs)
-              Just $ traceShowId $ solve4 xs' pat'
+              Just $ traceShowId $ solve5 xs' pat'
               -- in Just . length . eatRuns pat $ chunkUp xs
               -- in  runStateT (eatState (head pat)) <$> traverse NESeq.nonEmptySeq (chunkUp xs)
               -- in countTrue (matchesPat pat') $
