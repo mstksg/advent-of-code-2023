@@ -29,8 +29,8 @@ where
 import AOC.Prelude
 import qualified Data.Graph.Inductive as G
 import Data.Group
-import qualified Data.IntMap.Strict as IM
 import qualified Data.IntMap.NonEmpty as NEIM
+import qualified Data.IntMap.Strict as IM
 import qualified Data.IntSet as IS
 import qualified Data.List.NonEmpty as NE
 import qualified Data.List.PointedList as PL
@@ -82,7 +82,7 @@ shiftDir PD {..} dir rs =
   S.fromList
     [ rotPoint (invert dir) $ V2 x y
       | (x, ys) <- IM.toList fallens,
-        y <- IS.toList ys
+        y <- ys
     ]
   where
     Pillars {..} = case dir of
@@ -97,15 +97,14 @@ shiftDir PD {..} dir rs =
         [ (x, IS.singleton y)
           | V2 x y <- rotPoint dir <$> S.toList rs
         ]
-    fallens :: IntMap IntSet
+    fallens :: IntMap [Int]
     fallens = IM.intersectionWith go pCols cols
       where
         go pCol col =
-          IS.fromList
-            [ j
-              | (i, n) <- IM.toList fallen,
-                j <- [i + 1 .. i + n]
-            ]
+          [ j
+            | (i, n) <- IM.toList fallen,
+              j <- [i + 1 .. i + n]
+          ]
           where
             fallen :: IntMap Int
             fallen = IS.foldl' mkPiles IM.empty col
