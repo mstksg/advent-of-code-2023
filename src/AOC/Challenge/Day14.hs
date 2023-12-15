@@ -29,7 +29,8 @@ where
 import AOC.Prelude
 import qualified Data.Graph.Inductive as G
 import Data.Group
-import qualified Data.IntMap as IM
+import qualified Data.IntMap.Strict as IM
+import qualified Data.IntMap.NonEmpty as NEIM
 import qualified Data.IntSet as IS
 import qualified Data.List.NonEmpty as NE
 import qualified Data.List.PointedList as PL
@@ -45,49 +46,80 @@ import qualified Text.Megaparsec as P
 import qualified Text.Megaparsec.Char as P
 import qualified Text.Megaparsec.Char.Lexer as PP
 
-shiftDir :: Set Point -> Dir -> Set Point -> Set Point
-shiftDir ps dir rs =
+data PillarData = PD
+  { pdNorth :: !Pillars,
+    pdEast :: !Pillars,
+    pdSouth :: !Pillars,
+    pdWest :: !Pillars
+  }
+
+data Pillars = Pillars
+  { pCols :: !(IntMap IntSet),
+    pMin :: !Int,
+    pMax :: !Int
+  }
+
+splitPoints :: Map Point Bool -> (PillarData, Set Point)
+splitPoints mp = (PD (go North) (go East) (go South) (go West), rocks)
+  where
+    go dir =
+      Pillars
+        (IM.keysSet . NEIM.filter id <$> cols)
+        (minimum $ fst . NEIM.findMin <$> IM.elems cols)
+        (maximum $ fst . NEIM.findMax <$> IM.elems cols)
+      where
+        cols :: IntMap (NEIntMap Bool)
+        cols =
+          IM.fromListWith
+            (<>)
+            [ (x, NEIM.singleton y v)
+              | (V2 x y, v) <- first (rotPoint dir) <$> M.toList mp
+            ]
+    rocks = M.keysSet $ M.filter not mp
+
+shiftDir :: PillarData -> Dir -> Set Point -> Set Point
+shiftDir PD {..} dir rs =
   S.fromList
     [ rotPoint (invert dir) $ V2 x y
       | (x, ys) <- IM.toList fallens,
         y <- IS.toList ys
     ]
   where
-    minRow = minimum $ head . IM.keys <$> IM.elems cols
-    cols :: IntMap (IntMap Bool)
+    Pillars {..} = case dir of
+      North -> pdNorth
+      East -> pdEast
+      South -> pdSouth
+      West -> pdWest
+    cols :: IntMap IntSet
     cols =
       IM.fromListWith
         (<>)
-        [ (x, IM.singleton y k)
-          | (rotPoint dir -> V2 x y, k) <-
-              ((,True) <$> S.toList ps)
-                ++ ((,False) <$> S.toList rs)
+        [ (x, IS.singleton y)
+          | V2 x y <- rotPoint dir <$> S.toList rs
         ]
-    mkPiles curr (i, item)
-      | item = IM.insert (i + 1) 0 curr
-      | otherwise = IM.insert j (count + 1) curr
-      where
-        (j, count) = IM.findMax curr
     fallens :: IntMap IntSet
-    fallens =
-      cols <&> \col ->
-        let fallen :: IntMap Int
-            fallen = foldl' mkPiles (IM.singleton minRow 0) (IM.toList col)
-         in IS.fromList
-              [ j
-                | (i, n) <- IM.toList fallen,
-                  j <- [i .. i + n - 1]
-              ]
+    fallens = IM.intersectionWith go pCols cols
+      where
+        go pCol col =
+          IS.fromList
+            [ j
+              | (i, n) <- IM.toList fallen,
+                j <- [i + 1 .. i + n]
+            ]
+          where
+            fallen :: IntMap Int
+            fallen = IS.foldl' mkPiles IM.empty col
+            mkPiles !curr i = IM.insertWith (+) (fromMaybe (pMin - 1) $ IS.lookupLT i pCol) 1 curr
 
 score :: Int -> Set Point -> Int
-score maxRow pts = sum $ S.toList pts <&> \(V2 _ y) -> maxRow - y
+score maxRow pts = sum $ S.toList pts <&> \(V2 _ y) -> maxRow - y + 1
 
-shiftCycle :: Set Point -> Set Point -> Set Point
-shiftCycle ps =
-  shiftDir ps East
-    . shiftDir ps South
-    . shiftDir ps West
-    . shiftDir ps North
+shiftCycle :: PillarData -> Set Point -> Set Point
+shiftCycle pd =
+  shiftDir pd East
+    . shiftDir pd South
+    . shiftDir pd West
+    . shiftDir pd North
 
 day14a :: _ :~> _
 day14a =
@@ -99,9 +131,8 @@ day14a =
           _ -> Nothing,
       sShow = show,
       sSolve = noFail $ \mp ->
-        let (ps, rs) = bimap M.keysSet M.keysSet $ M.partition id mp
-            maxRow = maximum (view _y <$> M.keys mp) + 1
-         in score maxRow $ shiftDir ps North rs
+        let (ps, rs) = splitPoints mp
+         in score (pMax (pdNorth ps)) $ shiftDir ps North rs
     }
 
 day14b :: _ :~> _
@@ -110,10 +141,9 @@ day14b =
     { sParse = sParse day14a,
       sShow = show,
       sSolve = \mp -> do
-        let (ps, rs) = bimap M.keysSet M.keysSet $ M.partition id mp
-            maxRow = maximum (view _y <$> M.keys mp) + 1
+        let (ps, rs) = splitPoints mp
             shifts = iterate (shiftCycle ps) rs
         V2 i j <- fmap fst <$> findLoopBy id shifts
         let leftover = (1000000000 - i) `mod` (j - i)
-        pure $ score maxRow $ shifts !!! (i + leftover)
+        pure $ score (pMax (pdNorth ps)) $ shifts !!! (i + leftover)
     }
