@@ -47,16 +47,16 @@ import qualified Text.Megaparsec.Char as P
 import qualified Text.Megaparsec.Char.Lexer as PP
 
 data PillarData = PD
-  { pdNorth :: !Pillars,
-    pdEast :: !Pillars,
-    pdSouth :: !Pillars,
-    pdWest :: !Pillars
+  { pdNorth :: Pillars,
+    pdEast :: Pillars,
+    pdSouth :: Pillars,
+    pdWest :: Pillars
   }
 
 data Pillars = Pillars
-  { pCols :: !(IntMap IntSet),
-    pMin :: !Int,
-    pMax :: !Int
+  { pCols :: IntMap IntSet,
+    pMin :: Int,
+    pMax :: Int
   }
 
 splitPoints :: Map Point Bool -> (PillarData, Set Point)
