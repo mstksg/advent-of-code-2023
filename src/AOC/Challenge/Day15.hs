@@ -116,11 +116,14 @@ setBox label n b
 initBox :: String -> Int -> Box
 initBox label n = B (NEM.singleton label (BN n Nothing Nothing)) label label
 
-traceBox :: Box -> [(String, Int)]
-traceBox B {..} = go _bFirst
+boxSum :: Box -> Int
+boxSum B {..} = go 1 0 _bFirst
   where
-    go x = (x, _bnValue) : maybe [] go _bnAfter
+    go !i !n x = case _bnAfter of
+      Nothing -> n'
+      Just y -> go (i + 1) n' y
       where
+        n' = n + _bnValue * i
         BN {..} = _bMap NEM.! x
 
 day15b :: [(String, Act)] :~> Int
@@ -138,8 +141,4 @@ day15b =
       Set n -> IM.alter (Just . maybe (initBox lbl n) (setBox lbl n)) i mp
       where
         i = hasher lbl + 1
-
-    score boxNum =
-      sum
-        . zipWith (\i (_, n) -> boxNum * i * n) [1 ..]
-        . traceBox
+    score boxNum box = boxNum * boxSum box
