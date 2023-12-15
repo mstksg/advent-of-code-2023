@@ -14,15 +14,15 @@
 -- Gather together all challenges and collect them into a single map.
 --
 
-module AOC.Challenge (
+module AOC2023 (
     module AOC
-  , ChallengeMap
-  , ChallengeSpec(..), Part(..)
-  , challengeMap
-  , lookupSolution
-  , Day(..), dayInt, mkDay, mkDay_
-  , solSpec
-  , charPart
+  -- , ChallengeMap
+  -- , ChallengeSpec(..), Part(..)
+  -- , challengeMap
+  -- , lookupSolution
+  -- , Day(..), dayInt, mkDay, mkDay_
+  -- , solSpec
+  -- , charPart
   ) where
 
 import           AOC.Challenge.Day01 as AOC

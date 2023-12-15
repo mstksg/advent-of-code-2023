@@ -24,66 +24,62 @@ source-repository head
   location:            https://github.com/mstksg/advent-of-code-dev.git
 
 common common-options
-  build-depends:       advent-of-code-api >=0.2.7
-                     , Cabal
-                     , aeson
-                     , ansi-terminal
-                     , base >=4.7 && <5
-                     , bitvec
-                     , data-interval
-                     , bytestring
-                     , comonad
-                     , conduino
-                     , constraints
-                     , constraints-extras < 0.4
-                     , containers
-                     , criterion
-                     , data-default-class
-                     , data-memocombinators
-                     , deepseq
-                     , dependent-sum
-                     , directory
-                     , fgl
-                     , filepath
-                     , fin
-                     , finitary
-                     , finite-typelits
-                     , foldl
-                     , ghc-typelits-natnormalise
-                     , groups
-                     , hashable
-                     , haskeline
-                     -- , haskell-names
-                     -- , haskell-src-exts
-                     , heredoc
-                     , hpack
-                     , lens
-                     , linear
-                     , megaparsec
-                     , microlens-th
-                     , mtl
-                     , nonempty-containers
-                     , pandoc
-                     , parallel
-                     , parser-combinators
-                     , pointedlist
-                     , profunctors
-                     , psqueues
-                     , recursion-schemes
-                     , safe
-                     , semigroupoids
-                     , split
-                     , strict-tuple
-                     , tagsoup
-                     , template-haskell
-                     , text
-                     , th-abstraction
-                     , time
-                     , transformers
-                     , vector
-                     , vector-algorithms
-                     , vector-sized
-                     , yaml
+  build-depends:       base >=4.7 && <5
+                     -- , bitvec
+                     -- , data-interval
+                     -- , bytestring
+                     -- , comonad
+                     -- , conduino
+                     -- , constraints
+                     -- , constraints-extras < 0.4
+                     -- , containers
+                     -- , criterion
+                     -- , data-default-class
+                     -- , data-memocombinators
+                     -- , deepseq
+                     -- , dependent-sum
+                     -- , directory
+                     -- , fgl
+                     -- , filepath
+                     -- , fin
+                     -- , finitary
+                     -- , finite-typelits
+                     -- , foldl
+                     -- , ghc-typelits-natnormalise
+                     -- , groups
+                     -- , hashable
+                     -- , haskeline
+                     -- -- , haskell-names
+                     -- -- , haskell-src-exts
+                     -- , heredoc
+                     -- , hpack
+                     -- , lens
+                     -- , linear
+                     -- , megaparsec
+                     -- , microlens-th
+                     -- , mtl
+                     -- , nonempty-containers
+                     -- , pandoc
+                     -- , parallel
+                     -- , parser-combinators
+                     -- , pointedlist
+                     -- , profunctors
+                     -- , psqueues
+                     -- , recursion-schemes
+                     -- , safe
+                     -- , semigroupoids
+                     -- , split
+                     -- , strict-tuple
+                     -- , tagsoup
+                     -- , template-haskell
+                     -- , text
+                     -- , th-abstraction
+                     -- , time
+                     -- , transformers
+                     -- , vector
+                     -- , vector-algorithms
+                     -- , vector-sized
+                     -- , yaml
 
   ghc-options:         -Wall
                        -Wcompat
@@ -146,46 +142,32 @@ common common-options
 library
   import:              common-options
   exposed-modules:
-      AOC
-      AOC.Challenge
-      AOC.Challenge.Day01
-      AOC.Challenge.Day02
-      AOC.Challenge.Day03
-      AOC.Challenge.Day04
-      AOC.Challenge.Day05
-      AOC.Challenge.Day06
-      AOC.Challenge.Day07
-      AOC.Challenge.Day08
-      AOC.Challenge.Day09
-      AOC.Challenge.Day10
-      AOC.Challenge.Day11
-      AOC.Challenge.Day12
-      AOC.Challenge.Day13
-      AOC.Challenge.Day14
-      AOC.Challenge.Day15
-      AOC.Challenge.Day16
-      AOC.Challenge.Day17
-      AOC.Challenge.Day18
-      AOC.Challenge.Day19
-      AOC.Challenge.Day20
-      AOC.Challenge.Day21
-      AOC.Challenge.Day22
-      AOC.Challenge.Day23
-      AOC.Challenge.Day24
-      AOC.Challenge.Day25
-      -- AOC.Common
-      -- AOC.Common.FinitarySet
-      -- AOC.Common.Point
-      -- AOC.Common.Search
-      -- AOC.Discover
-      -- AOC.Prelude
-      -- AOC.Run
-      -- AOC.Run.Config
-      -- AOC.Run.Interactive
-      -- AOC.Run.Load
-      -- AOC.Solver
-      -- AOC.Util
-      -- AOC.Util.DynoMap
+      AOC2023
+      AOC2023.Day01
+      AOC2023.Day02
+      AOC2023.Day03
+      AOC2023.Day04
+      AOC2023.Day05
+      AOC2023.Day06
+      AOC2023.Day07
+      AOC2023.Day08
+      AOC2023.Day09
+      AOC2023.Day10
+      AOC2023.Day11
+      AOC2023.Day12
+      AOC2023.Day13
+      AOC2023.Day14
+      AOC2023.Day15
+      AOC2023.Day16
+      AOC2023.Day17
+      AOC2023.Day18
+      AOC2023.Day19
+      AOC2023.Day20
+      AOC2023.Day21
+      AOC2023.Day22
+      AOC2023.Day23
+      AOC2023.Day24
+      AOC2023.Day25
   other-modules:
       Paths_aoc2023
   hs-source-dirs:
@@ -193,23 +175,23 @@ library
   other-modules:
       Paths_aoc2023
 
-executable aoc2023
-  import: common-options
-  main-is: aoc-runner.hs
-  hs-source-dirs:
-      app
-  build-depends:
-      ansi-terminal
-    , aoc2023
-    , base >=4.7 && <5
-    , containers
-    , deepseq
-    , finite-typelits
-    , microlens
-    , mtl
-    , optparse-applicative
-  default-language: Haskell2010
-  ghc-options: -threaded -rtsopts -with-rtsopts=-N
+-- executable aoc2023
+--   import: common-options
+--   main-is: aoc-runner.hs
+--   hs-source-dirs:
+--       app
+--   build-depends:
+--       ansi-terminal
+--     , aoc2023
+--     , base >=4.7 && <5
+--     , containers
+--     , deepseq
+--     , finite-typelits
+--     , microlens
+--     , mtl
+--     , optparse-applicative
+--   default-language: Haskell2010
+--   ghc-options: -threaded -rtsopts -with-rtsopts=-N
 
 -- test-suite aoc2023-test
 --   import: common-options
