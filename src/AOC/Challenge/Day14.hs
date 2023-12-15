@@ -45,10 +45,10 @@ import qualified Text.Megaparsec as P
 import qualified Text.Megaparsec.Char as P
 import qualified Text.Megaparsec.Char.Lexer as PP
 
-shiftNorth :: Set Point -> Set Point -> Set Point
-shiftNorth ps rs =
+shiftDir :: Set Point -> Dir -> Set Point -> Set Point
+shiftDir ps dir rs =
   S.fromList
-    [ V2 x y
+    [ rotPoint (invert dir) $ V2 x y
       | (x, ys) <- IM.toList fallens,
         y <- IS.toList ys
     ]
@@ -59,7 +59,7 @@ shiftNorth ps rs =
       IM.fromListWith
         (<>)
         [ (x, IM.singleton y k)
-          | (V2 x y, k) <-
+          | (rotPoint dir -> V2 x y, k) <-
               ((,True) <$> S.toList ps)
                 ++ ((,False) <$> S.toList rs)
         ]
@@ -83,10 +83,11 @@ score :: Int -> Set Point -> Int
 score maxRow pts = sum $ S.toList pts <&> \(V2 _ y) -> maxRow - y
 
 shiftCycle :: Set Point -> Set Point -> Set Point
-shiftCycle ps rs = snd . shiftRot . shiftRot . shiftRot . shiftRot $ (ps, rs)
-  where
-    shiftRot (ps', rs') = (rotator ps', rotator (shiftNorth ps' rs'))
-    rotator = S.map (rotPoint West)
+shiftCycle ps =
+  shiftDir ps East
+    . shiftDir ps South
+    . shiftDir ps West
+    . shiftDir ps North
 
 day14a :: _ :~> _
 day14a =
@@ -100,7 +101,7 @@ day14a =
       sSolve = noFail $ \mp ->
         let (ps, rs) = bimap M.keysSet M.keysSet $ M.partition id mp
             maxRow = maximum (view _y <$> M.keys mp) + 1
-         in score maxRow $ shiftNorth ps rs
+         in score maxRow $ shiftDir ps North rs
     }
 
 day14b :: _ :~> _
@@ -122,4 +123,3 @@ day14b =
         iterate (shiftCycle ps) x !!! leftover
       where
         leftover = (1000000000 - i) `mod` (j - i)
-
