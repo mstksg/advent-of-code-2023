@@ -119,11 +119,8 @@ initBox label n = B (NEM.singleton label (BN n Nothing Nothing)) label label
 traceBox :: Box -> [(String, Int)]
 traceBox B {..} = go _bFirst
   where
-    go x = case _bnAfter of
-      Nothing -> [out]
-      Just y -> out : go y
+    go x = (x, _bnValue) : maybe [] go _bnAfter
       where
-        out = (x, _bnValue)
         BN {..} = _bMap NEM.! x
 
 day15b :: [(String, Act)] :~> Int
