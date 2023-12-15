@@ -59,7 +59,7 @@ data Pillars = Pillars
     pMax :: Int
   }
 
-splitPoints :: Map Point Bool -> (PillarData, Set Point)
+splitPoints :: Map Point Bool -> (PillarData, [Point])
 splitPoints mp = (PD (go North) (go East) (go South) (go West), rocks)
   where
     go dir =
@@ -75,15 +75,14 @@ splitPoints mp = (PD (go North) (go East) (go South) (go West), rocks)
             [ (x, NEIM.singleton y v)
               | (V2 x y, v) <- first (rotPoint dir) <$> M.toList mp
             ]
-    rocks = M.keysSet $ M.filter not mp
+    rocks = M.keys $ M.filter not mp
 
-shiftDir :: PillarData -> Dir -> Set Point -> Set Point
+shiftDir :: PillarData -> Dir -> [Point] -> [Point]
 shiftDir PD {..} dir rs =
-  S.fromList
-    [ rotPoint (invert dir) $ V2 x y
-      | (x, ys) <- IM.toList fallens,
-        y <- ys
-    ]
+  [ rotPoint (invert dir) $ V2 x y
+    | (x, ys) <- IM.toList fallens,
+      y <- ys
+  ]
   where
     Pillars {..} = case dir of
       North -> pdNorth
@@ -95,7 +94,7 @@ shiftDir PD {..} dir rs =
       IM.fromListWith
         (<>)
         [ (x, IS.singleton y)
-          | V2 x y <- rotPoint dir <$> S.toList rs
+          | V2 x y <- rotPoint dir <$> rs
         ]
     fallens :: IntMap [Int]
     fallens = IM.intersectionWith go pCols cols
@@ -110,10 +109,10 @@ shiftDir PD {..} dir rs =
             fallen = IS.foldl' mkPiles IM.empty col
             mkPiles !curr i = IM.insertWith (+) (fromMaybe (pMin - 1) $ IS.lookupLT i pCol) 1 curr
 
-score :: Int -> Set Point -> Int
-score maxRow pts = sum $ S.toList pts <&> \(V2 _ y) -> maxRow - y + 1
+score :: Int -> [Point] -> Int
+score maxRow pts = sum $ pts <&> \(V2 _ y) -> maxRow - y + 1
 
-shiftCycle :: PillarData -> Set Point -> Set Point
+shiftCycle :: PillarData -> [Point] -> [Point]
 shiftCycle pd =
   shiftDir pd East
     . shiftDir pd South
