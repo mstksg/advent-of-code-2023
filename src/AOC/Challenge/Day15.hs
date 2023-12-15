@@ -15,8 +15,8 @@ module AOC.Challenge.Day15
 where
 
 import AOC.Common (digitToIntSafe)
-import AOC.Util (strip)
 import AOC.Solver (noFail, (:~>) (..))
+import AOC.Util (strip)
 import Control.DeepSeq (NFData)
 import Control.Lens (makeLenses, set, unsnoc)
 import Data.Char (ord)
@@ -64,9 +64,9 @@ parseAct str = do
       pure (label, Set n)
 
 data BoxNode = BN
-  { _bnValue :: Int,
-    _bnAfter :: Maybe String,
-    _bnBefore :: Maybe String
+  { _bnValue :: !Int,
+    _bnAfter :: !(Maybe String),
+    _bnBefore :: !(Maybe String)
   }
   deriving stock (Eq, Ord, Show, Generic)
 
@@ -140,9 +140,9 @@ day15b =
       Delete -> IM.update (deleteBox lbl) i mp
       Set n -> IM.alter (Just . maybe (initBox lbl n) (setBox lbl n)) i mp
       where
-        i = hasher lbl
+        i = hasher lbl + 1
 
     score boxNum =
       sum
-        . zipWith (\i (_, n) -> (boxNum + 1) * i * n) [1 ..]
+        . zipWith (\i (_, n) -> boxNum * i * n) [1 ..]
         . traceBox
