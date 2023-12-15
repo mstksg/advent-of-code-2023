@@ -53,7 +53,7 @@ shiftDir ps dir rs =
         y <- IS.toList ys
     ]
   where
-    minRow = minimum $ IM.keys =<< IM.elems cols
+    minRow = minimum $ head . IM.keys <$> IM.elems cols
     cols :: IntMap (IntMap Bool)
     cols =
       IM.fromListWith
@@ -109,17 +109,11 @@ day14b =
   MkSol
     { sParse = sParse day14a,
       sShow = show,
-      sSolve = \mp ->
+      sSolve = \mp -> do
         let (ps, rs) = bimap M.keysSet M.keysSet $ M.partition id mp
             maxRow = maximum (view _y <$> M.keys mp) + 1
-         in fmap (loopMath maxRow ps)
-              . findLoopBy id
-              . iterate (shiftCycle ps)
-              $ rs
+            shifts = iterate (shiftCycle ps) rs
+        V2 i j <- fmap fst <$> findLoopBy id shifts
+        let leftover = (1000000000 - i) `mod` (j - i)
+        pure $ score maxRow $ shifts !!! (i + leftover)
     }
-  where
-    loopMath maxRow ps (V2 (i, x) (j, _)) =
-      score maxRow $
-        iterate (shiftCycle ps) x !!! leftover
-      where
-        leftover = (1000000000 - i) `mod` (j - i)
