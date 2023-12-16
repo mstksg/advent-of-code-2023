@@ -25,44 +25,44 @@ module AOC2023 (
   -- , charPart
   ) where
 
-import           AOC.Challenge.Day01 as AOC
-import           AOC.Challenge.Day02 as AOC
-import           AOC.Challenge.Day03 as AOC
-import           AOC.Challenge.Day04 as AOC
-import           AOC.Challenge.Day05 as AOC
-import           AOC.Challenge.Day06 as AOC
-import           AOC.Challenge.Day07 as AOC
-import           AOC.Challenge.Day08 as AOC
-import           AOC.Challenge.Day09 as AOC
-import           AOC.Challenge.Day10 as AOC
-import           AOC.Challenge.Day11 as AOC
-import           AOC.Challenge.Day12 as AOC
-import           AOC.Challenge.Day13 as AOC
-import           AOC.Challenge.Day14 as AOC
-import           AOC.Challenge.Day15 as AOC
-import           AOC.Challenge.Day16 as AOC
-import           AOC.Challenge.Day17 as AOC
-import           AOC.Challenge.Day18 as AOC
-import           AOC.Challenge.Day19 as AOC
-import           AOC.Challenge.Day20 as AOC
-import           AOC.Challenge.Day21 as AOC
-import           AOC.Challenge.Day22 as AOC
-import           AOC.Challenge.Day23 as AOC
-import           AOC.Challenge.Day24 as AOC
-import           AOC.Challenge.Day25 as AOC
+import           AOC2023.Day01 as AOC
+import           AOC2023.Day02 as AOC
+import           AOC2023.Day03 as AOC
+import           AOC2023.Day04 as AOC
+import           AOC2023.Day05 as AOC
+import           AOC2023.Day06 as AOC
+import           AOC2023.Day07 as AOC
+import           AOC2023.Day08 as AOC
+import           AOC2023.Day09 as AOC
+import           AOC2023.Day10 as AOC
+import           AOC2023.Day11 as AOC
+import           AOC2023.Day12 as AOC
+import           AOC2023.Day13 as AOC
+import           AOC2023.Day14 as AOC
+import           AOC2023.Day15 as AOC
+import           AOC2023.Day16 as AOC
+import           AOC2023.Day17 as AOC
+import           AOC2023.Day18 as AOC
+import           AOC2023.Day19 as AOC
+import           AOC2023.Day20 as AOC
+import           AOC2023.Day21 as AOC
+import           AOC2023.Day22 as AOC
+import           AOC2023.Day23 as AOC
+import           AOC2023.Day24 as AOC
+import           AOC2023.Day25 as AOC
 
-import           AOC.Discover
-import           AOC.Solver
-import           Advent
-import           Control.Monad
-import           Data.Finite
-import           Data.Map         (Map)
-import qualified Data.Map         as M
+-- import           AOC.Discover
+-- import           AOC.Solver
+-- import           Advent
+-- import           Control.Monad
+-- import           Data.Finite
+-- import           Data.Map         (Map)
+-- import qualified Data.Map         as M
 
--- | A map of all challenges.
-challengeMap :: ChallengeMap
-challengeMap = mkChallengeMap $$(solutionList)
+-- -- | A map of all challenges.
+-- challengeMap :: ChallengeMap
+-- challengeMap = mkChallengeMap $$(solutionList)
 
--- | Lookup up a solution from a 'ChallengeMap'
-lookupSolution :: ChallengeSpec -> Map Day (Map Part a) -> Maybe a
-lookupSolution CS{..} = M.lookup _csPart <=< M.lookup _csDay
+-- -- | Lookup up a solution from a 'ChallengeMap'
+-- lookupSolution :: ChallengeSpec -> Map Day (Map Part a) -> Maybe a
+-- lookupSolution CS{..} = M.lookup _csPart <=< M.lookup _csDay

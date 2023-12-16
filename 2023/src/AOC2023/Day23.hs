@@ -2,13 +2,13 @@
 {-# OPTIONS_GHC -Wno-unused-top-binds #-}
 
 -- |
--- Module      : AOC${year}.Day${day}
+-- Module      : AOC2023.Day23
 -- License     : BSD3
 --
 -- Stability   : experimental
 -- Portability : non-portable
 --
--- Day ${day_short}.  See "AOC.Solver" for the types used in this module!
+-- Day 23.  See "AOC.Solver" for the types used in this module!
 --
 -- After completing the challenge, it is recommended to:
 --
@@ -20,10 +20,10 @@
 --     types @_ :~> _@ with the actual types of inputs and outputs of the
 --     solution.  You can delete the type signatures completely and GHC
 --     will recommend what should go in place of the underscores.
-module AOC${year}.Day${day}
+module AOC2023.Day23
   ( 
-    -- day${day}a,
-    -- day${day}b
+    -- day23a,
+    -- day23b
   )
 where
 
@@ -50,25 +50,25 @@ import qualified Text.Megaparsec as P
 import qualified Text.Megaparsec.Char as P
 import qualified Text.Megaparsec.Char.Lexer as PP
 
-day${day}a :: _ :~> _
-day${day}a =
+day23a :: _ :~> _
+day23a =
   MkSol
     { sParse =
-        noFail $$
+        noFail $
           lines
     ,
       sShow = show,
       sSolve =
-        noFail $$
+        noFail $
           id
     }
 
-day${day}b :: _ :~> _
-day${day}b =
+day23b :: _ :~> _
+day23b =
   MkSol
-    { sParse = sParse day${day}a,
+    { sParse = sParse day23a,
       sShow = show,
       sSolve =
-        noFail $$
+        noFail $
           id
     }

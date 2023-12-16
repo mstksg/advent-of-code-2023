@@ -25,61 +25,45 @@ source-repository head
 
 common common-options
   build-depends:       base >=4.7 && <5
-                     -- , bitvec
-                     -- , data-interval
-                     -- , bytestring
-                     -- , comonad
-                     -- , conduino
-                     -- , constraints
-                     -- , constraints-extras < 0.4
-                     -- , containers
-                     -- , criterion
-                     -- , data-default-class
-                     -- , data-memocombinators
-                     -- , deepseq
-                     -- , dependent-sum
-                     -- , directory
-                     -- , fgl
-                     -- , filepath
-                     -- , fin
-                     -- , finitary
-                     -- , finite-typelits
-                     -- , foldl
-                     -- , ghc-typelits-natnormalise
-                     -- , groups
-                     -- , hashable
-                     -- , haskeline
-                     -- -- , haskell-names
-                     -- -- , haskell-src-exts
-                     -- , heredoc
-                     -- , hpack
-                     -- , lens
-                     -- , linear
-                     -- , megaparsec
-                     -- , microlens-th
-                     -- , mtl
-                     -- , nonempty-containers
-                     -- , pandoc
-                     -- , parallel
-                     -- , parser-combinators
-                     -- , pointedlist
-                     -- , profunctors
-                     -- , psqueues
-                     -- , recursion-schemes
-                     -- , safe
-                     -- , semigroupoids
-                     -- , split
-                     -- , strict-tuple
-                     -- , tagsoup
-                     -- , template-haskell
-                     -- , text
-                     -- , th-abstraction
-                     -- , time
-                     -- , transformers
-                     -- , vector
-                     -- , vector-algorithms
-                     -- , vector-sized
-                     -- , yaml
+                     , aoc-common
+                     , aoc-core
+                     , bitvec
+                     , comonad
+                     , conduino
+                     , containers
+                     , data-default-class
+                     , data-interval
+                     , data-memocombinators
+                     , deepseq
+                     , fgl
+                     , fin
+                     , finitary
+                     , finite-typelits
+                     , foldl
+                     , ghc-typelits-natnormalise
+                     , groups
+                     , hashable
+                     , lens
+                     , linear
+                     , megaparsec
+                     , microlens-th
+                     , mtl
+                     , nonempty-containers
+                     , parallel
+                     , parser-combinators
+                     , pointedlist
+                     , profunctors
+                     , psqueues
+                     , recursion-schemes
+                     , safe
+                     , semigroupoids
+                     , split
+                     , strict-tuple
+                     , text
+                     , transformers
+                     , vector
+                     , vector-algorithms
+                     , vector-sized
 
   ghc-options:         -Wall
                        -Wcompat
@@ -134,7 +118,6 @@ common common-options
       TemplateHaskell
       TupleSections
       TypeApplications
-      TypeInType
       TypeOperators
       UndecidableInstances
       ViewPatterns
