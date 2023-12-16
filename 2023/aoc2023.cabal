@@ -29,7 +29,7 @@ common common-options
                      , aoc-core
                      , bitvec
                      , comonad
-                     , conduino
+                     , conduino >= 0.2.9
                      , containers
                      , data-default-class
                      , data-interval

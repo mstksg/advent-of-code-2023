@@ -4,13 +4,6 @@ packages:
     ./core
 
 
--- only until haskell.nix pulls in v0.2.9.0
-source-repository-package
-  type: git
-  location: https://github.com/mstksg/advent-of-code-api.git
-  tag: 509f5714d0edf4e2b3b52c2512457e986e531cfc
-  --sha256: 0jipd2fqh4vz0mi61nqm3x3n24kzz5w3nq77c6l0zfp2zr9c7ymb
-
 -- only until haskell.nix pulls in v0.2.4.0
 source-repository-package
   type: git
