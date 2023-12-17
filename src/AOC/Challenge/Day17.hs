@@ -22,8 +22,8 @@
 --     will recommend what should go in place of the underscores.
 
 module AOC.Challenge.Day17 (
-    -- day17a
-  -- , day17b
+    day17a
+  , day17b
   ) where
 
 import           AOC.Prelude
@@ -47,14 +47,49 @@ import qualified Text.Megaparsec.Char.Lexer     as PP
 
 day17a :: _ :~> _
 day17a = MkSol
-    { sParse = Just . lines
+    { sParse = noFail $ parseAsciiMap digitToIntSafe
     , sShow  = show
-    , sSolve = Just
+    , sSolve = \mp -> do
+        V2 p1 p2 <- boundingBox' (M.keys mp)
+        let grow (lastThree, p) = M.fromList
+              [ ((take 3 (d : lastThree), p'), cost)
+                | d <- toList allDir
+              , case lastThree of
+                  [] -> True
+                  dd : _ -> dd /= d <> South
+              , lastThree /= replicate 3 d
+              , let p' = p + dirPoint d
+              , cost <- maybeToList $ M.lookup p' mp
+              ]
+        fst <$> aStar ((`mannDist` p2) . snd) grow ([],p1) ((== p2) . snd)
     }
+
+-- aStar
+--     :: forall n p. (Ord n, Ord p, Num p)
+--     => (n -> p)         -- ^ heuristic
+--     -> (n -> Map n p)   -- ^ neighborhood
+--     -> n                -- ^ start
+--     -> (n -> Bool)      -- ^ target
+--     -> Maybe (p, [n])   -- ^ the shortest path, if it exists, and its cost
 
 day17b :: _ :~> _
 day17b = MkSol
     { sParse = sParse day17a
     , sShow  = show
-    , sSolve = Just
+    , sSolve = \mp -> do
+        V2 p1 p2 <- boundingBox' (M.keys mp)
+        let grow (lastDir, p) = M.fromList
+              [ ((Just d, p'), sum (snd <$> steps))
+                | d <- toList allDir
+              , case lastDir of
+                  Nothing -> True
+                  Just d' -> d /= d' && d /= (d' <> South)
+              , steps <- drop 4 $ inits do
+                  i <- [1..10]
+                  let p' = p + i *^ dirPoint d
+                  cost <- maybeToList $ M.lookup p' mp
+                  pure (p', cost)
+              , (p', _) <- maybeToList $ lastMay steps
+              ]
+        fst <$> aStar ((`mannDist` p2) . snd) grow (Nothing,p1) ((== p2) . snd)
     }
