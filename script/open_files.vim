@@ -17,21 +17,19 @@
 " Change s:year below to open test data for a different year
 "
 
-let s:year = 2023
-
-function! OpenAoC(day)
+function! OpenAoC(year,day)
     let l:daystr  = printf("%02d",a:day)
-    let l:yearstr = printf("%04d",s:year)
-    let l:files = ["src/AOC/Challenge/Day" . l:daystr . ".hs",
-                  \"data/" . l:daystr . ".txt",
-                  \"prompt/" . l:daystr . "a.md",
-                  \"prompt/" . l:daystr . "b.md",
-                  \"data/code-blocks/" . l:daystr . "a.txt",
-                  \"data/code-blocks/" . l:daystr . "b.txt",
+    let l:yearstr = printf("%04d",a:year)
+    let l:files = [l:yearstr . "/src/AOC" . l:yearstr . "/Day" . l:daystr . ".hs",
+                  \"data/" . l:yearstr . "/" . l:daystr . ".txt",
+                  \"prompt/" . l:yearstr . "/" . l:daystr . "a.md",
+                  \"prompt/" . l:yearstr . "/" . l:daystr . "b.md",
+                  \"data/" . l:yearstr . "/code-blocks/" . l:daystr . "a.txt",
+                  \"data/" . l:yearstr . "/code-blocks/" . l:daystr . "b.txt",
                   \"test-data/" . l:yearstr . "/" . l:daystr . "a.txt",
                   \"test-data/" . l:yearstr . "/" . l:daystr . "b.txt",
-                  \"reflections/day" . l:daystr . ".md",
-                  \"bench-out/day" . l:daystr . ".txt"
+                  \"reflections/" . l:yearstr . "/day" . l:daystr . ".md",
+                  \"bench-out/" . l:yearstr . "/day" . l:daystr . ".txt"
                   \]
 
     for fn in reverse(l:files)
@@ -39,11 +37,12 @@ function! OpenAoC(day)
     endfor
 endfunction
 
-let s:buffday = str2nr(matchstr(expand('%:t:r'), '\d\+'))
+let s:buffyear = str2nr(matchstr(expand('%'), '\d\d\d\d'))
+let s:buffday = str2nr(matchstr(expand('%:t:r'), '\d\d'))
 
 if (s:buffday == 0)
     echo "no valid file found in buffer; use :call OpenAoC(day) to open a day"
 else
-    echo "found day" . string(s:buffday)
-    call OpenAoC(s:buffday)
+    echo "found day " . string(s:buffyear) . " " . string(s:buffday)
+    call OpenAoC(s:buffyear, s:buffday)
 endif
