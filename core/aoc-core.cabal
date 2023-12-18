@@ -25,13 +25,13 @@ source-repository head
 common common-options
   build-depends:       base >=4.7 && <5
                      , advent-of-code-api >=0.2.9.1
-                     , criterion
                      , aeson
                      , ansi-terminal
                      , bytestring
                      , constraints
                      , constraints-extras
                      , containers
+                     , criterion
                      , data-default-class
                      , deepseq
                      , dependent-sum
@@ -39,7 +39,10 @@ common common-options
                      , filepath
                      , haskeline
                      , megaparsec
+                     , microlens
+                     , microlens-th
                      , mtl
+                     , optparse-applicative
                      , pandoc
                      , parser-combinators
                      , tagsoup
@@ -111,6 +114,9 @@ library
   import:              common-options
   exposed-modules:
       AOC.Discover
+      AOC.Main.Runner
+      AOC.Main.Spec
+      AOC.Main.Bench
       AOC.Run
       AOC.Run.Config
       AOC.Run.Interactive

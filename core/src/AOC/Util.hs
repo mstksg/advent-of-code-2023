@@ -13,12 +13,23 @@ module AOC.Util
     stripNewline,
     eitherToMaybe,
     maybeToEither,
+    firstJust,
   )
 where
 
 import Control.Applicative
 import Control.Monad.Except
+import Data.Foldable
 import qualified Data.Text as T
+
+-- | Like 'find', but instead of taking an @a -> Bool@, takes an @a ->
+-- Maybe b@ and returns the first success.
+firstJust ::
+  (Foldable t) =>
+  (a -> Maybe b) ->
+  t a ->
+  Maybe b
+firstJust p = asum . map p . toList
 
 -- | Strip trailing and leading whitespace.
 strip :: String -> String

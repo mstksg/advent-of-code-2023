@@ -1137,15 +1137,6 @@ instance FoldableWithIndex k (NEMap k) where
 instance TraversableWithIndex k (NEMap k) where
   itraverse = NEM.traverseWithKey
 
--- | Like 'find', but instead of taking an @a -> Bool@, takes an @a ->
--- Maybe b@ and returns the first success.
-firstJust ::
-  (Foldable t) =>
-  (a -> Maybe b) ->
-  t a ->
-  Maybe b
-firstJust p = asum . map p . toList
-
 -- | Generalize a 'Maybe' to any 'Alternative'
 maybeAlt :: (Alternative m) => Maybe a -> m a
 maybeAlt = maybe empty pure

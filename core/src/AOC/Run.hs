@@ -24,11 +24,13 @@ module AOC.Run
 
     -- ** Run solutions, tests, benchmarks
     MainRunOpts (..),
+    HasMainRunOpts (..),
     mainRun,
     defaultMRO,
 
     -- ** View prompts
     MainViewOpts (..),
+    HasMainViewOpts (..),
     mainView,
     defaultMVO,
 
@@ -65,6 +67,7 @@ import Data.Text (Text)
 import qualified Data.Text as T
 import qualified Data.Text.IO as T
 import Data.Time hiding (Day)
+import Lens.Micro.TH
 import qualified System.Console.ANSI as ANSI
 import qualified System.Console.Haskeline as H
 import Text.Printf
@@ -93,6 +96,8 @@ data MainRunOpts = MRO
     _mroInput :: !(ChallengeSpec -> IO (Maybe String))
   }
 
+makeClassy ''MainRunOpts
+
 -- | Options for 'mainView'.
 data MainViewOpts = MVO
   { _mvoSpec :: !TestSpec,
@@ -100,9 +105,13 @@ data MainViewOpts = MVO
   }
   deriving stock (Show)
 
+makeClassy ''MainViewOpts
+
 -- | Options for 'mainSubmit'
 data MainSubmitOpts = MSO
-  { -- | Run tests before submitting?  (Default: True)
+  { -- | Challenge spec
+    _msoSpec :: !ChallengeSpec,
+    -- | Run tests before submitting?  (Default: True)
     _msoTest :: !Bool,
     -- | Force submission even if bad?  (Default: False)
     _msoForce :: !Bool,
@@ -137,10 +146,11 @@ defaultMVO ts =
     }
 
 -- | Default options for 'mainSubmit'.
-defaultMSO :: MainSubmitOpts
-defaultMSO =
+defaultMSO :: ChallengeSpec -> MainSubmitOpts
+defaultMSO cs =
   MSO
-    { _msoTest = True,
+    { _msoSpec = cs,
+      _msoTest = True,
       _msoForce = False,
       _msoLock = True
     }
@@ -248,10 +258,9 @@ mainSubmit ::
   (MonadIO m, MonadError [String] m) =>
   ChallengeBundle ->
   Config ->
-  ChallengeSpec ->
   MainSubmitOpts ->
   m (Text, SubmitRes)
-mainSubmit CB {..} Cfg {..} cs@CS {..} MSO {..} = do
+mainSubmit CB {..} Cfg {..} MSO {..} = do
   cd@CD {..} <- liftIO $ challengeData _cfgSession _cbYear cs
   inp <- liftEither . first ("[PROMPT ERROR]" :) $ _cdInput
   opts <-
@@ -306,6 +315,7 @@ mainSubmit CB {..} Cfg {..} cs@CS {..} MSO {..} = do
   pure output
   where
     d' = dayInt _csDay
+    cs@CS{..} = _msoSpec
     CP {..} = challengePaths _cbYear cs
     formatResp = T.unpack . T.intercalate "\n" . map ("> " <>)
     logFmt =

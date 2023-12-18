@@ -159,7 +159,7 @@ waitForPrompt ri@RI {..} = eitherIO $ do
 submitSolution :: RunInteractive -> IO (Text, SubmitRes)
 submitSolution ri@RI {..} = eitherIO $ do
   cfg <- liftIO $ configFile defConfPath
-  mainSubmit (riChallengeBundle ri) cfg _riSpec defaultMSO
+  mainSubmit (riChallengeBundle ri) cfg (defaultMSO _riSpec)
 
 -- | Result-suppressing version of 'execSolution'.
 execSolution_ :: RunInteractive -> IO ()
