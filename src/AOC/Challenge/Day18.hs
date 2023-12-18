@@ -22,8 +22,8 @@
 --     will recommend what should go in place of the underscores.
 
 module AOC.Challenge.Day18 (
-    -- day18a
-  -- , day18b
+    day18a
+  , day18b
   ) where
 
 import           AOC.Prelude
@@ -41,20 +41,49 @@ import qualified Data.Set                       as S
 import qualified Data.Text                      as T
 import qualified Data.Vector                    as V
 import qualified Linear                         as L
+import Data.Bitraversable
 import qualified Text.Megaparsec                as P
 import qualified Text.Megaparsec.Char           as P
 import qualified Text.Megaparsec.Char.Lexer     as PP
 
+-- R 5 (#4f4602)
+
+parseLine :: String -> Maybe (Dir, Int)
+parseLine = bitraverse (parseDir . head) readMaybe
+        <=< listTup . take 2 . words
+
 day18a :: _ :~> _
 day18a = MkSol
-    { sParse = Just . lines
+    { sParse = traverse parseLine . lines
     , sShow  = show
-    , sSolve = Just
+    , sSolve = noFail $
+          \ps -> 
+            let 
+                qs = fst $ foldl' go (S.empty, 0)  ps
+                pathPoints = S.map fst qs
+                Just bb = boundingBox' pathPoints
+                expandedPoints = foldMap S.fromList $ S.toList qs <&> \(q,d) ->
+                  takeWhile (\r -> r `S.notMember` pathPoints && inBoundingBox bb r) . tail $
+                    iterate (+ dirPoint' (d <> East)) q
+             in S.size $ expandedPoints <> pathPoints
     }
+  where
+    go (seen, p) (d, i) = (S.fromList ps <> seen, fst $ last ps)
+      where
+        ps = map (,d) . take (i+1) $ iterate (+ dirPoint' d) p
+
+-- -- | Flood fill from a starting set
+-- floodFill
+--     :: Ord a
+--     => (a -> Set a)     -- ^ Expansion (be sure to limit allowed points)
+--     -> Set a            -- ^ Start points
+--     -> Set a            -- ^ Flood filled
+-- floodFill f = snd . floodFillCount f
 
 day18b :: _ :~> _
 day18b = MkSol
     { sParse = sParse day18a
     , sShow  = show
-    , sSolve = Just
+    , sSolve = noFail $
+          id
     }
