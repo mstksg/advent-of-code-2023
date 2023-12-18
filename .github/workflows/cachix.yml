@@ -19,5 +19,5 @@ jobs:
       with:
         name: mstksg
         authToken: '${{ secrets.CACHIX_AUTH_TOKEN }}'
-    # - run: nix build
+    - run: nix build
     - run: nix develop . --command bash -c "echo OK"
