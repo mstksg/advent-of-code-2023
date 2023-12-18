@@ -45,45 +45,49 @@ import Data.Bitraversable
 import qualified Text.Megaparsec                as P
 import qualified Text.Megaparsec.Char           as P
 import qualified Text.Megaparsec.Char.Lexer     as PP
+import Numeric.Lens (hex)
 
 -- R 5 (#4f4602)
 
-parseLine :: String -> Maybe (Dir, Int)
-parseLine = bitraverse (parseDir . head) readMaybe
+parseLineA :: String -> Maybe (Dir, Int)
+parseLineA = bitraverse (parseDir . head) readMaybe
         <=< listTup . take 2 . words
+
+shoelace :: NonEmpty Point -> Int
+-- shoelace (z:|zs) = (`div` 2) . abs . sum $ traceShow (zip (z:zs) (zs)) $ zipWith go (z:zs) (zs ++ [z])
+shoelace (z:|zs) = (`div` 2) . abs . sum $ zipWith go (z:zs) (zs ++ [z])
+  where
+    latterPart = zs ++ [z]
+    go (V2 x y) (V2 x' y') = x * y' - y * x'
 
 day18a :: _ :~> _
 day18a = MkSol
-    { sParse = traverse parseLine . lines
+    { sParse = traverse parseLineA . lines
     , sShow  = show
-    , sSolve = noFail $
-          \ps -> 
-            let 
-                qs = fst $ foldl' go (S.empty, 0)  ps
-                pathPoints = S.map fst qs
-                Just bb = boundingBox' pathPoints
-                expandedPoints = foldMap S.fromList $ S.toList qs <&> \(q,d) ->
-                  takeWhile (\r -> r `S.notMember` pathPoints && inBoundingBox bb r) . tail $
-                    iterate (+ dirPoint' (d <> East)) q
-             in S.size $ expandedPoints <> pathPoints
+    , sSolve = fmap shoelace . NE.nonEmpty . scanl' go 0
     }
   where
-    go (seen, p) (d, i) = (S.fromList ps <> seen, fst $ last ps)
-      where
-        ps = map (,d) . take (i+1) $ iterate (+ dirPoint' d) p
+    go p (d, i) = p + i *^ dirPoint' d
 
--- -- | Flood fill from a starting set
--- floodFill
---     :: Ord a
---     => (a -> Set a)     -- ^ Expansion (be sure to limit allowed points)
---     -> Set a            -- ^ Start points
---     -> Set a            -- ^ Flood filled
--- floodFill f = snd . floodFillCount f
+parseLineB :: String -> Maybe (Dir, Int)
+parseLineB = splitUp . filter isHexDigit <=< (!? 2) . words
+  where
+    splitUp xs = do
+      y:ys <- pure $ reverse xs
+      d <- case y of
+        '0' -> pure East
+        '1' -> pure South
+        '2' -> pure West
+        '3' -> pure North
+        _ -> empty
+      i <- preview (reversed . hex) ys
+      pure (d, i)
 
 day18b :: _ :~> _
 day18b = MkSol
-    { sParse = sParse day18a
+    { sParse = traverse parseLineB . lines
     , sShow  = show
-    , sSolve = noFail $
-          id
+    , sSolve = fmap shoelace . NE.nonEmpty . scanl' go 0
     }
+  where
+    go p (d, i) = p + i *^ dirPoint d
