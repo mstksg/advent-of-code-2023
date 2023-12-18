@@ -158,46 +158,41 @@ library
   other-modules:
       Paths_aoc2023
 
--- executable aoc2023
---   import: common-options
---   main-is: aoc-runner.hs
---   hs-source-dirs:
---       app
---   build-depends:
---       ansi-terminal
---     , aoc2023
---     , base >=4.7 && <5
---     , containers
---     , deepseq
---     , finite-typelits
---     , microlens
---     , mtl
---     , optparse-applicative
---   default-language: Haskell2010
---   ghc-options: -threaded -rtsopts -with-rtsopts=-N
+executable aoc2023
+  import: common-options
+  main-is: runner-2023.hs
+  hs-source-dirs:
+      app
+  build-depends:
+      ansi-terminal
+    , aoc2023
+    , aoc-core
+  default-language: Haskell2010
+  ghc-options: -threaded -rtsopts -with-rtsopts=-N
 
--- test-suite aoc2023-test
---   import: common-options
---   type: exitcode-stdio-1.0
---   main-is: Spec.hs
---   hs-source-dirs:
---       test
---   ghc-options: -threaded -rtsopts -with-rtsopts=-N
---   build-depends:
---       ansi-terminal
---     , aoc2023
---     , base >=4.7 && <5
---     , mtl
---   default-language: Haskell2010
+test-suite aoc2023-test
+  import: common-options
+  type: exitcode-stdio-1.0
+  main-is: Spec.hs
+  hs-source-dirs:
+      test
+  ghc-options: -threaded -rtsopts -with-rtsopts=-N
+  build-depends:
+      base
+    , ansi-terminal
+    , aoc2023
+    , aoc-core
+  default-language: Haskell2010
 
--- benchmark aoc2023-bench
---   type: exitcode-stdio-1.0
---   main-is: Bench.hs
---   hs-source-dirs:
---       bench
---   ghc-options: -threaded -rtsopts -with-rtsopts=-N
---   build-depends:
---       aoc2023
---     , base >=4.7 && <5
---     , mtl
---   default-language: Haskell2010
+benchmark aoc2023-bench
+  type: exitcode-stdio-1.0
+  main-is: Bench.hs
+  hs-source-dirs:
+      bench
+  ghc-options: -threaded -rtsopts -with-rtsopts=-N
+  build-depends:
+      base
+    , ansi-terminal
+    , aoc2023
+    , aoc-core
+  default-language: Haskell2010
