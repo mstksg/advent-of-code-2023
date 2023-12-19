@@ -64,10 +64,15 @@ day18a :: _ :~> _
 day18a = MkSol
     { sParse = traverse parseLineA . lines
     , sShow  = show
-    , sSolve = fmap shoelace . NE.nonEmpty . scanl' go 0
+    , sSolve = NE.nonEmpty . flip evalState (0, Nothing) . traverse (uncurry go)
+    -- , sSolve = fmap shoelace . NE.nonEmpty . scanl' go 0
     }
   where
-    go p (d, i) = p + i *^ dirPoint' d
+    go :: Dir -> Int -> State (Point, Maybe Dir) [Point]
+    go d i = state \(p, lastDir) ->
+      let p' = p + i *^ dirPoint' d
+       in undefined
+    -- go p (d, i) = p + i *^ dirPoint' d
 
 parseLineB :: String -> Maybe (Dir, Int)
 parseLineB = splitUp . filter isHexDigit <=< (!? 2) . words
