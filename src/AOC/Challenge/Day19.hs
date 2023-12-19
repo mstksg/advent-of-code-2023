@@ -27,6 +27,7 @@ module AOC.Challenge.Day19
 where
 
 import AOC.Prelude
+import Data.Functor.Foldable
 import qualified Data.Graph.Inductive as G
 import qualified Data.IntMap as IM
 import qualified Data.IntSet as IS
@@ -58,9 +59,32 @@ opMap :: Map Char Ordering
 opMap = M.fromList $ zip "<=>" [LT, EQ, GT]
 
 data Result a = Reject | Accept | Defer a
-  deriving stock (Eq, Ord, Show, Generic)
+  deriving stock (Eq, Ord, Show, Generic, Functor)
 
 instance (NFData a) => NFData (Result a)
+
+result :: b -> b -> (a -> b) -> Result a -> b
+result r a d = \case
+  Reject -> r
+  Accept -> a
+  Defer x -> d x
+
+-- | like Either monad
+instance Applicative Result where
+  pure = Defer
+  (<*>) = \case
+    Reject -> const Reject
+    Accept -> const Accept
+    Defer f -> \case
+      Reject -> Reject
+      Accept -> Accept
+      Defer x -> Defer (f x)
+
+instance Monad Result where
+  (>>=) = \case
+    Reject -> const Reject
+    Accept -> const Accept
+    Defer x -> ($ x)
 
 data Rule a = Rule
   { rXmas :: XMAS,
@@ -68,7 +92,7 @@ data Rule a = Rule
     rVal :: Int,
     rResult :: Result a
   }
-  deriving stock (Eq, Ord, Show, Generic)
+  deriving stock (Eq, Ord, Show, Generic, Functor)
 
 instance (NFData a) => NFData (Rule a)
 
@@ -76,7 +100,7 @@ data Workflow a = Workflow
   { wfRules :: [Rule a],
     wfDefault :: Result a
   }
-  deriving stock (Eq, Ord, Show, Generic)
+  deriving stock (Eq, Ord, Show, Generic, Functor)
 
 instance (NFData a) => NFData (Workflow a)
 
@@ -130,6 +154,26 @@ accepted filts mp = go "in"
           | compare (mp M.! rXmas) rVal == rOp = rResult
           | otherwise = rest
 
+accepted2 ::
+  Map String (Workflow String) ->
+  Map XMAS Int ->
+  Bool
+accepted2 filts mp =
+  result False True absurd
+    . hylo (cataWorkflow mp) (anaWorkflow filts)
+    $ "in"
+
+anaWorkflow :: Map String (Workflow String) -> String -> Workflow String
+anaWorkflow wfs = (wfs M.!)
+
+cataWorkflow :: Map XMAS Int -> Workflow (Result a) -> Result a
+cataWorkflow mp = go
+  where
+    go Workflow {..} = foldr eval (join wfDefault) wfRules
+    eval Rule {..} rest
+      | compare (mp M.! rXmas) rVal == rOp = join rResult
+      | otherwise = rest
+
 day19a :: _ :~> _
 day19a =
   MkSol
@@ -139,7 +183,7 @@ day19a =
           <$> fmap M.fromList (traverse processFilter (lines a))
           <*> traverse processInp (lines b),
       sShow = show,
-      sSolve = \(filts, xs) -> Just . sum . map sum . filter (accepted filts) $ xs
+      sSolve = \(filts, xs) -> Just . sum . map sum . filter (accepted2 filts) $ xs
     }
 
 day19b :: _ :~> _
