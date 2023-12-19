@@ -33,8 +33,8 @@ import qualified Data.IntMap as IM
 import qualified Data.IntSet as IS
 import Data.Interval (Interval)
 import qualified Data.Interval as IV
-import Data.IntervalMap.Lazy (IntervalMap)
-import qualified Data.IntervalMap.Lazy as IVM
+import Data.IntervalMap.Strict (IntervalMap)
+import qualified Data.IntervalMap.Strict as IVM
 import Data.IntervalSet (IntervalSet)
 import qualified Data.IntervalSet as IVS
 import qualified Data.List.NonEmpty as NE
@@ -214,9 +214,11 @@ difference (XmasSet xs) (XmasSet xs') =
 size :: XmasSet -> Int
 size (XmasSet xs) = (sumBySize . sumBySize . sumBySize) (sum . map ivalSize . IVS.toList) xs
   where
-    sumBySize f = sum . map (\(i,a) -> ivalSize i * f a) . IVM.toList
-    ivalSize i = IV.width i - 1 +
-      countTrue (== IV.Closed) (map snd [IV.lowerBound' i, IV.upperBound' i])
+    sumBySize f = sum . map (\(i, a) -> ivalSize i * f a) . IVM.toList
+    ivalSize i =
+      IV.width i
+        - 1
+        + countTrue (== IV.Closed) (map snd [IV.lowerBound' i, IV.upperBound' i])
 
 -- ....x   .....   ....x
 -- .x..x   x...x   .x...
@@ -256,7 +258,7 @@ day19a =
           <*> traverse processInp (lines b),
       sShow = show,
       sSolve = noFail $ \(wfs, xs) ->
-          sum
+        sum
           . map sum
           . filter (\x -> hylo (evalWorkflow x) (wfs M.!) "in")
           $ xs
