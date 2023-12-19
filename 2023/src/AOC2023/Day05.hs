@@ -1,74 +1,85 @@
-{-# OPTIONS_GHC -Wno-unused-imports #-}
-{-# OPTIONS_GHC -Wno-unused-top-binds #-}
-
 -- |
--- Module      : AOC2023.Day05
+-- Module      : AOC.Challenge.Day05
 -- License     : BSD3
 --
 -- Stability   : experimental
 -- Portability : non-portable
 --
 -- Day 5.  See "AOC.Solver" for the types used in this module!
---
--- After completing the challenge, it is recommended to:
---
--- *   Replace "AOC.Prelude" imports to specific modules (with explicit
---     imports) for readability.
--- *   Remove the @-Wno-unused-imports@ and @-Wno-unused-top-binds@
---     pragmas.
--- *   Replace the partial type signatures underscores in the solution
---     types @_ :~> _@ with the actual types of inputs and outputs of the
---     solution.  You can delete the type signatures completely and GHC
---     will recommend what should go in place of the underscores.
 module AOC2023.Day05
-  ( 
-    -- day05a,
-    -- day05b
+  ( day05a,
+    day05b,
   )
 where
 
-import AOC.Prelude
-import qualified Data.Graph.Inductive as G
-import qualified Data.IntMap as IM
-import qualified Data.IntMap.NonEmpty as IM
-import qualified Data.IntSet as IS
-import qualified Data.IntSet.NonEmpty as NEIS
-import qualified Data.List.NonEmpty as NE
-import qualified Data.List.PointedList as PL
-import qualified Data.List.PointedList.Circular as PLC
-import qualified Data.Map as M
-import qualified Data.Map.NonEmpty as NEM
-import qualified Data.OrdPSQ as PSQ
-import qualified Data.Sequence as Seq
-import qualified Data.Sequence.NonEmpty as NESeq
-import qualified Data.Set as S
-import qualified Data.Set.NonEmpty as NES
-import qualified Data.Text as T
-import qualified Data.Vector as V
-import qualified Linear as L
-import qualified Text.Megaparsec as P
-import qualified Text.Megaparsec.Char as P
-import qualified Text.Megaparsec.Char.Lexer as PP
+import AOC.Common (listTup, listTup3)
+import AOC.Solver ((:~>) (..))
+import Control.Lens (traverseOf, _1)
+import Control.Monad ((<=<))
+import Data.Interval (Interval)
+import qualified Data.Interval as IV
+import Data.IntervalMap.Strict (IntervalMap)
+import qualified Data.IntervalMap.Strict as IVM
+import Data.IntervalSet (IntervalSet)
+import qualified Data.IntervalSet as IVS
+import Data.List (foldl')
+import Data.List.Split (chunksOf, splitOn)
+import Data.Traversable (for)
+import Safe (minimumMay)
+import Text.Read (readMaybe)
 
-day05a :: _ :~> _
+convertSingle :: Int -> IntervalMap Int Int -> Int
+convertSingle x = maybe x (x +) . IVM.lookup x
+
+fromRange :: Int -> Int -> Interval Int
+fromRange x len = IV.Finite x IV.<=..< IV.Finite (x + len)
+
+convertMany :: IntervalSet Int -> IntervalMap Int Int -> IntervalSet Int
+convertMany xs mp = misses <> hits
+  where
+    tempMap :: IntervalMap Int ()
+    tempMap = IVM.fromList . map (,()) . IVS.toList $ xs
+    misses = IVM.keysSet $ tempMap IVM.\\ mp
+    hits =
+      IVS.fromList
+        . map (\(iv, delta) -> IV.mapMonotonic (+ delta) iv)
+        . IVM.toList
+        $ IVM.intersectionWith const mp tempMap
+
+parseLine :: [String] -> Maybe ([Int], [IntervalMap Int Int])
+parseLine [] = Nothing
+parseLine (x : xs) = do
+  initSeeds <- traverse readMaybe $ drop 1 (words x)
+  ivMaps <- for (splitOn [""] (drop 1 xs)) \ys ->
+    IVM.fromList
+      <$> for (drop 1 ys) \y -> do
+        (dest, src, len) <- listTup3 =<< traverse readMaybe (words y)
+        pure (fromRange src len, dest - src)
+  pure (initSeeds, ivMaps)
+
+day05a :: ([Int], [IntervalMap Int Int]) :~> Int
 day05a =
   MkSol
-    { sParse =
-        noFail $
-          lines
-    ,
+    { sParse = parseLine . lines,
       sShow = show,
-      sSolve =
-        noFail $
-          id
+      sSolve = \(s0, process) ->
+        minimumMay
+          [ foldl' convertSingle s process
+            | s <- s0
+          ]
     }
 
-day05b :: _ :~> _
+day05b :: ([Interval Int], [IntervalMap Int Int]) :~> Int
 day05b =
   MkSol
-    { sParse = sParse day05a,
+    { sParse = traverseOf _1 pairUp <=< parseLine . lines,
       sShow = show,
-      sSolve =
-        noFail $
-          id
+      sSolve = \(s0, process) ->
+        fromFinite . IV.lowerBound . IVS.span $
+          foldl' convertMany (IVS.fromList s0) process
     }
+  where
+    pairUp = traverse (fmap (uncurry fromRange) . listTup) . chunksOf 2
+    fromFinite = \case
+      IV.Finite x -> Just x
+      _ -> Nothing

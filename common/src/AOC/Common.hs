@@ -117,6 +117,7 @@ module AOC.Common
     symDiff,
     unfoldedIterate,
     memo4,
+    LCM (..),
 
     -- * Parsers
     TokStream (..),
@@ -1148,3 +1149,11 @@ traceShowIdMsg msg x = trace (msg ++ show x) x
 -- | Like 'traceShow' but with an extra message
 traceShowMsg :: (Show a) => String -> a -> b -> b
 traceShowMsg msg x = trace (msg ++ show x)
+
+newtype LCM a = LCM {getLCM :: a}
+
+instance (Integral a) => Monoid (LCM a) where
+  mempty = LCM 1
+
+instance (Integral a) => Semigroup (LCM a) where
+  LCM x <> LCM y = LCM (lcm x y)

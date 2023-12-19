@@ -1,74 +1,88 @@
-{-# OPTIONS_GHC -Wno-unused-imports #-}
-{-# OPTIONS_GHC -Wno-unused-top-binds #-}
-
 -- |
--- Module      : AOC2023.Day03
+-- Module      : AOC.Challenge.Day03
 -- License     : BSD3
 --
 -- Stability   : experimental
 -- Portability : non-portable
 --
 -- Day 3.  See "AOC.Solver" for the types used in this module!
---
--- After completing the challenge, it is recommended to:
---
--- *   Replace "AOC.Prelude" imports to specific modules (with explicit
---     imports) for readability.
--- *   Remove the @-Wno-unused-imports@ and @-Wno-unused-top-binds@
---     pragmas.
--- *   Replace the partial type signatures underscores in the solution
---     types @_ :~> _@ with the actual types of inputs and outputs of the
---     solution.  You can delete the type signatures completely and GHC
---     will recommend what should go in place of the underscores.
 module AOC2023.Day03
-  ( 
-    -- day03a,
-    -- day03b
+  ( day03a,
+    day03b,
   )
 where
 
-import AOC.Prelude
-import qualified Data.Graph.Inductive as G
-import qualified Data.IntMap as IM
-import qualified Data.IntMap.NonEmpty as IM
-import qualified Data.IntSet as IS
-import qualified Data.IntSet.NonEmpty as NEIS
-import qualified Data.List.NonEmpty as NE
-import qualified Data.List.PointedList as PL
-import qualified Data.List.PointedList.Circular as PLC
+import AOC.Common (listTup)
+import AOC.Common.Point (Point, contiguousRegions, fullNeighbs, fullNeighbsSet, parseAsciiMap)
+import AOC.Solver ((:~>) (..))
+import Control.Lens (each, traverseOf)
+import Control.Monad (guard)
+import Data.Bifunctor (first)
+import Data.Char (isDigit)
+import Data.Map (Map)
 import qualified Data.Map as M
-import qualified Data.Map.NonEmpty as NEM
-import qualified Data.OrdPSQ as PSQ
-import qualified Data.Sequence as Seq
-import qualified Data.Sequence.NonEmpty as NESeq
+import Data.Maybe (mapMaybe)
+import Data.Set (Set)
 import qualified Data.Set as S
 import qualified Data.Set.NonEmpty as NES
-import qualified Data.Text as T
-import qualified Data.Vector as V
-import qualified Linear as L
-import qualified Text.Megaparsec as P
-import qualified Text.Megaparsec.Char as P
-import qualified Text.Megaparsec.Char.Lexer as PP
+import Text.Read (readMaybe)
 
-day03a :: _ :~> _
+day03a :: (Set Point, Map Point Char) :~> Int
 day03a =
   MkSol
     { sParse =
-        noFail $
-          lines
-    ,
+        Just
+          . first M.keysSet
+          . M.mapEither id
+          . parseAsciiMap
+            ( \case
+                '.' -> Nothing
+                c
+                  | isDigit c -> Just $ Right c
+                  | otherwise -> Just $ Left ()
+            ),
       sShow = show,
-      sSolve =
-        noFail $
-          id
+      sSolve = \(symbolPoints, numPoints) ->
+        let numChunks = contiguousRegions (M.keysSet numPoints)
+            adjacentToSymbols = fullNeighbsSet `foldMap` S.toList symbolPoints
+            validNumChunks = flip S.filter numChunks \numChunk ->
+              not $ NES.toSet numChunk `S.disjoint` adjacentToSymbols
+            numStrings =
+              M.elems
+                . M.restrictKeys numPoints
+                . NES.toSet
+                <$> S.toList validNumChunks
+         in sum <$> traverse readMaybe numStrings
     }
 
-day03b :: _ :~> _
+day03b :: (Set Point, Map Point Char) :~> Int
 day03b =
   MkSol
-    { sParse = sParse day03a,
+    { sParse =
+        Just
+          . first M.keysSet
+          . M.mapEither id
+          . parseAsciiMap
+            ( \case
+                '*' -> Just $ Left ()
+                c -> Right c <$ guard (isDigit c)
+            ),
       sShow = show,
-      sSolve =
-        noFail $
-          id
+      sSolve = \(symbolPoints, numPoints) ->
+        let numChunks = contiguousRegions (M.keysSet numPoints)
+            adjacentToSymbols = M.fromList do
+              p <- S.toList symbolPoints
+              n <- fullNeighbs p
+              pure (n, p)
+            validNumChunks = M.fromListWith (<>) do
+              rg <- NES.toSet <$> S.toList numChunks
+              let rgDigits = M.elems $ M.restrictKeys numPoints rg
+              orig <-
+                M.elems $
+                  adjacentToSymbols `M.restrictKeys` rg
+              pure (orig, S.singleton rgDigits)
+         in fmap (sum . map (uncurry (*)))
+              . traverse (traverseOf each readMaybe)
+              . mapMaybe (listTup . S.elems)
+              $ M.elems validNumChunks
     }

@@ -42,6 +42,7 @@ module AOC.Common.Point
     boundingBox,
     boundingBox',
     inBoundingBox,
+    fillBoundingBox,
     minCorner,
     minCorner',
     contiguousRegions,
@@ -117,6 +118,14 @@ boundingBox =
 -- | A version of 'boundingBox' that works for normal possibly-empty lists.
 boundingBox' :: (Foldable f, Applicative g, Ord a) => f (g a) -> Maybe (V2 (g a))
 boundingBox' = fmap boundingBox . NE.nonEmpty . toList
+
+fillBoundingBox ::
+  (Foldable f, Applicative g, Ord a, Ord (g a), Traversable g, Enum a) =>
+  f (g a) ->
+  Set (g a)
+fillBoundingBox ps = case boundingBox' ps of
+  Nothing -> S.empty
+  Just (V2 mins maxs) -> S.fromList $ sequenceA $ liftA2 enumFromTo mins maxs
 
 minCorner :: (Foldable1 f, Applicative g, Ord a) => f (g a) -> g a
 minCorner = fmap getMin . getAp . foldMap1 (Ap . fmap Min)

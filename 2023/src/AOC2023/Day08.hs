@@ -2,73 +2,85 @@
 {-# OPTIONS_GHC -Wno-unused-top-binds #-}
 
 -- |
--- Module      : AOC2023.Day08
+-- Module      : AOC.Challenge.Day08
 -- License     : BSD3
 --
 -- Stability   : experimental
 -- Portability : non-portable
 --
 -- Day 8.  See "AOC.Solver" for the types used in this module!
---
--- After completing the challenge, it is recommended to:
---
--- *   Replace "AOC.Prelude" imports to specific modules (with explicit
---     imports) for readability.
--- *   Remove the @-Wno-unused-imports@ and @-Wno-unused-top-binds@
---     pragmas.
--- *   Replace the partial type signatures underscores in the solution
---     types @_ :~> _@ with the actual types of inputs and outputs of the
---     solution.  You can delete the type signatures completely and GHC
---     will recommend what should go in place of the underscores.
 module AOC2023.Day08
-  ( 
-    -- day08a,
-    -- day08b
+  ( day08a,
+    day08b,
   )
 where
 
-import AOC.Prelude
-import qualified Data.Graph.Inductive as G
-import qualified Data.IntMap as IM
-import qualified Data.IntMap.NonEmpty as IM
-import qualified Data.IntSet as IS
-import qualified Data.IntSet.NonEmpty as NEIS
-import qualified Data.List.NonEmpty as NE
-import qualified Data.List.PointedList as PL
-import qualified Data.List.PointedList.Circular as PLC
+import AOC.Common (LCM (..))
+import AOC.Solver (noFail, (:~>) (..))
+import Control.Monad (guard)
+import Data.Char (isAlphaNum)
+import Data.Functor (($>))
+import Data.List (foldl')
+import Data.Map (Map)
 import qualified Data.Map as M
-import qualified Data.Map.NonEmpty as NEM
-import qualified Data.OrdPSQ as PSQ
+import Data.Maybe (mapMaybe)
+import Data.Sequence (Seq)
 import qualified Data.Sequence as Seq
-import qualified Data.Sequence.NonEmpty as NESeq
-import qualified Data.Set as S
-import qualified Data.Set.NonEmpty as NES
-import qualified Data.Text as T
-import qualified Data.Vector as V
-import qualified Linear as L
-import qualified Text.Megaparsec as P
-import qualified Text.Megaparsec.Char as P
-import qualified Text.Megaparsec.Char.Lexer as PP
 
-day08a :: _ :~> _
+parseMe :: [String] -> Maybe ([Bool], [(String, String, String)])
+parseMe = \case
+  x : _ : xs ->
+    let path = map (== 'R') x
+        mp =
+          [ (a, filter isAlphaNum b, filter isAlphaNum c)
+            | [a, "=", b, c] <- words <$> xs
+          ]
+     in Just (path, mp)
+  _ -> Nothing
+
+stateMachine :: (String -> Bool) -> [Bool] -> [(String, String, String)] -> Map String (Seq String)
+stateMachine isValid lrs xs =
+  M.fromList
+    [ (a, (\dir -> if dir then c else b) <$> dirMap)
+      | (a, b, c) <- xs,
+        isValid a
+    ]
+  where
+    dirMap :: Seq Bool
+    dirMap = Seq.fromList lrs
+
+expandPath ::
+  Map String (Seq String) ->
+  Map String [String]
+expandPath mp = (`Seq.index` 0) <$> res
+  where
+    res = flip (fmap . Seq.mapWithIndex) mp \i str ->
+      str : case M.lookup str res of
+        Nothing -> []
+        Just r -> r `ixMod` (i + 1)
+
+ixMod :: Seq a -> Int -> a
+ixMod xs i = xs `Seq.index` (i `mod` Seq.length xs)
+
+day08a :: ([Bool], [(String, String, String)]) :~> Int
 day08a =
   MkSol
-    { sParse =
-        noFail $
-          lines
-    ,
+    { sParse = parseMe . lines,
       sShow = show,
-      sSolve =
-        noFail $
-          id
+      sSolve = noFail \(xs, mp) ->
+        let sm = stateMachine (/= "ZZZ") xs mp
+         in length $ expandPath sm M.! "AAA"
     }
 
-day08b :: _ :~> _
+day08b :: ([Bool], [(String, String, String)]) :~> Int
 day08b =
   MkSol
-    { sParse = sParse day08a,
+    { sParse = parseMe . lines,
       sShow = show,
-      sSolve =
-        noFail $
-          id
+      sSolve = noFail \(xs, mp) ->
+        foldr lcm 1
+          . mapMaybe (\(k, i) -> guard (last k == 'A') $> length i)
+          . M.toList
+          . expandPath
+          $ stateMachine (\k -> last k /= 'Z') xs mp
     }

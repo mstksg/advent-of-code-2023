@@ -14,6 +14,8 @@
 module AOC.Solver
   ( (:~>) (..),
     noFail,
+    mapSum,
+    traverseSum,
     withSolver,
     withSolver',
     SomeSolution (.., MkSomeSol),
@@ -35,8 +37,10 @@ import AOC.Util
 import AOC.Util.DynoMap
 import Control.DeepSeq
 import Data.Dependent.Sum
+import Data.Foldable
 import Data.Functor.Identity
 import Data.Map (Map)
+import Data.Semigroup (Sum (..))
 import GHC.Generics (Generic)
 
 -- | Abstracting over the type of a challenge solver to help with cleaner
@@ -62,6 +66,12 @@ data a :~> b = MkSol
 
 noFail :: (a -> b) -> a -> Maybe b
 noFail f = Just . f
+
+mapSum :: (Foldable t, Num b) => (a -> b) -> t a -> b
+mapSum f = getSum . foldMap (Sum . f)
+
+traverseSum :: (Foldable t, Applicative f, Num b) => (a -> f b) -> t a -> f b
+traverseSum f = fmap sum . traverse f . toList
 
 -- | Wrap an @a ':~>' b@ and hide the type variables so we can put
 -- different solutions in a container.

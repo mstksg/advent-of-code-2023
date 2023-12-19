@@ -1,74 +1,78 @@
-{-# OPTIONS_GHC -Wno-unused-imports #-}
-{-# OPTIONS_GHC -Wno-unused-top-binds #-}
-
 -- |
--- Module      : AOC2023.Day13
+-- Module      : AOC.Challenge.Day13
 -- License     : BSD3
 --
 -- Stability   : experimental
 -- Portability : non-portable
 --
 -- Day 13.  See "AOC.Solver" for the types used in this module!
---
--- After completing the challenge, it is recommended to:
---
--- *   Replace "AOC.Prelude" imports to specific modules (with explicit
---     imports) for readability.
--- *   Remove the @-Wno-unused-imports@ and @-Wno-unused-top-binds@
---     pragmas.
--- *   Replace the partial type signatures underscores in the solution
---     types @_ :~> _@ with the actual types of inputs and outputs of the
---     solution.  You can delete the type signatures completely and GHC
---     will recommend what should go in place of the underscores.
 module AOC2023.Day13
-  ( 
-    -- day13a,
-    -- day13b
+  ( day13a,
+    day13b,
   )
 where
 
-import AOC.Prelude
-import qualified Data.Graph.Inductive as G
+import AOC.Common (firstJust)
+import AOC.Common.Point (Point, fillBoundingBox, parseAsciiSet)
+import AOC.Solver (noFail, traverseSum, (:~>) (..))
+import Control.Lens (contains, over)
+import Data.Foldable (toList)
+import Data.IntMap (IntMap)
 import qualified Data.IntMap as IM
-import qualified Data.IntMap.NonEmpty as IM
+import Data.IntSet (IntSet)
 import qualified Data.IntSet as IS
-import qualified Data.IntSet.NonEmpty as NEIS
-import qualified Data.List.NonEmpty as NE
-import qualified Data.List.PointedList as PL
-import qualified Data.List.PointedList.Circular as PLC
-import qualified Data.Map as M
-import qualified Data.Map.NonEmpty as NEM
-import qualified Data.OrdPSQ as PSQ
-import qualified Data.Sequence as Seq
-import qualified Data.Sequence.NonEmpty as NESeq
-import qualified Data.Set as S
-import qualified Data.Set.NonEmpty as NES
-import qualified Data.Text as T
-import qualified Data.Vector as V
-import qualified Linear as L
-import qualified Text.Megaparsec as P
-import qualified Text.Megaparsec.Char as P
-import qualified Text.Megaparsec.Char.Lexer as PP
+import Data.List (find)
+import Data.List.Split (splitOn)
+import Data.Maybe (listToMaybe)
+import Data.Set (Set)
+import Linear.V2 (V2 (..))
 
-day13a :: _ :~> _
+findRefl :: Set Point -> [Int]
+findRefl pts = findForMap cols <> map (* 100) (findForMap rows)
+  where
+    cols :: IntMap IntSet
+    cols =
+      IM.fromListWith
+        (<>)
+        [ (x, IS.singleton y)
+          | V2 x y <- toList pts
+        ]
+    rows :: IntMap IntSet
+    rows =
+      IM.fromListWith
+        (<>)
+        [ (y, IS.singleton x)
+          | V2 x y <- toList pts
+        ]
+    findForMap :: IntMap IntSet -> [Int]
+    findForMap mp = flip filter [minKey + 1 .. maxKey] $ \i ->
+      let (lt, gt) = IM.spanAntitone (< i) mp
+       in and $ zipWith (==) (snd <$> IM.toDescList lt) (snd <$> IM.toAscList gt)
+      where
+        (minKey, _) = IM.findMin mp
+        (maxKey, _) = IM.findMax mp
+
+day13a :: [Set Point] :~> Int
 day13a =
   MkSol
-    { sParse =
-        noFail $
-          lines
-    ,
+    { sParse = noFail $ map (parseAsciiSet (== '#')) . splitOn "\n\n",
       sShow = show,
-      sSolve =
-        noFail $
-          id
+      sSolve = traverseSum $ listToMaybe . findRefl
     }
 
-day13b :: _ :~> _
+findSmudge :: Set Point -> Maybe Int
+findSmudge pts = flip firstJust (fillBoundingBox pts) \pt ->
+  find (`IS.notMember` origRefl)
+    . findRefl
+    . over (contains pt) not
+    $ pts
+  where
+    origRefl = IS.fromList $ findRefl pts
+
+day13b :: [Set Point] :~> Int
 day13b =
   MkSol
-    { sParse = sParse day13a,
+    { sParse = noFail $ map (parseAsciiSet (== '#')) . splitOn "\n\n",
       sShow = show,
-      sSolve =
-        noFail $
-          id
+      sSolve = traverseSum findSmudge
     }
