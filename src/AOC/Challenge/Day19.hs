@@ -123,8 +123,8 @@ chunky str = (inp, map go chunks)
       b' <- readMaybe b
       pure (a', o', b', tailMay x'')
 
-processWorkflow :: String -> Maybe (String, Workflow String)
-processWorkflow str = do
+parseWorkflow :: String -> Maybe (String, Workflow String)
+parseWorkflow str = do
   (conds, Left backup) <- unsnoc filterParts
   rules <- for conds \case
     Right (a, b, c, Just d) -> Just $ Rule a b c (classify d)
@@ -137,8 +137,8 @@ processWorkflow str = do
       "A" -> Accept
       p -> Defer p
 
-processInp :: String -> Maybe (Map XMAS Int)
-processInp = fmap M.fromList . traverse go . snd . chunky
+parseBag :: String -> Maybe (Map XMAS Int)
+parseBag = fmap M.fromList . traverse go . snd . chunky
   where
     go = \case
       Right (x, _, n, _) -> Just (x, n)
@@ -188,28 +188,41 @@ allXmas =
 noXmas :: XmasSet
 noXmas = XmasSet IVM.empty
 
+reMap :: (Ord k, Eq a) => IntervalMap k a -> IntervalMap k a
+reMap = IVM.fromList . eat . IVM.toAscList
+  where
+    eat [] = []
+    eat ((i, v) : xs) = go i v xs
+    go i v = \case
+      [] -> [(i, v)]
+      (j, u) : xs
+        | i `IV.isConnected` j && v == u -> go (i `IV.hull` j) v xs
+        | otherwise -> (i, v) : go j u xs
+
 intersect :: XmasSet -> XmasSet -> XmasSet
 intersect (XmasSet xs) (XmasSet xs') =
-  XmasSet $
-    IVM.intersectionWith
-      (IVM.intersectionWith (IVM.intersectionWith IVS.intersection))
-      xs
-      xs'
+  XmasSet $ subInter (subInter (subInter IVS.intersection)) xs xs'
+  where
+    subInter f x = reMap . IVM.intersectionWith f x
 
 union :: XmasSet -> XmasSet -> XmasSet
 union (XmasSet xs) (XmasSet xs') =
-  XmasSet $
-    IVM.unionWith
-      (IVM.unionWith (IVM.unionWith IVS.union))
-      xs
-      xs'
+  XmasSet $ subUnion (subUnion (subUnion IVS.union)) xs xs'
+  where
+    subUnion f x = reMap . IVM.unionWith f x
 
+-- ....x   .....   ....x
+-- .x..x   x...x   .x...
+-- .xx.x   xx.x.   ..x.x
+-- x..x.   .xx.x   x..x.
+--
+-- combine A^B and whatever is in A but not B
 difference :: XmasSet -> XmasSet -> XmasSet
 difference (XmasSet xs) (XmasSet xs') =
   XmasSet $
     diffWith (diffWith (diffWith IVS.difference)) xs xs'
   where
-    diffWith f a b = IVM.intersectionWith f a b <> IVM.difference a b
+    diffWith f a b = reMap $ IVM.intersectionWith f a b <> IVM.difference a b
 
 size :: XmasSet -> Int
 size (XmasSet xs) = (sumBySize . sumBySize . sumBySize) (sum . map ivalSize . IVS.toList) xs
@@ -219,13 +232,6 @@ size (XmasSet xs) = (sumBySize . sumBySize . sumBySize) (sum . map ivalSize . IV
       IV.width i
         - 1
         + countTrue (== IV.Closed) (map snd [IV.lowerBound' i, IV.upperBound' i])
-
--- ....x   .....   ....x
--- .x..x   x...x   .x...
--- .xx.x   xx.x.   ..x.x
--- x..x.   .xx.x   x..x.
---
--- combine A^B and whatever is in A but not B
 
 xmasRule :: Rule XmasSet -> XmasSet -> XmasSet
 xmasRule Rule {..} rest = case rResult of
@@ -254,8 +260,8 @@ day19a =
     { sParse = \inp -> do
         (a, b) <- listTup $ splitOn "\n\n" inp
         (,)
-          <$> fmap M.fromList (traverse processWorkflow (lines a))
-          <*> traverse processInp (lines b),
+          <$> fmap M.fromList (traverse parseWorkflow (lines a))
+          <*> traverse parseBag (lines b),
       sShow = show,
       sSolve = noFail $ \(wfs, xs) ->
         sum
@@ -267,7 +273,7 @@ day19a =
 day19b :: _ :~> _
 day19b =
   MkSol
-    { sParse = fmap M.fromList . traverse processWorkflow . takeWhile (not . null) . lines,
+    { sParse = fmap M.fromList . traverse parseWorkflow . takeWhile (not . null) . lines,
       sShow = show,
       sSolve =
         noFail $ \wfs ->
