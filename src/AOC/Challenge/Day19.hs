@@ -31,6 +31,8 @@ import Data.Functor.Foldable
 import qualified Data.Graph.Inductive as G
 import qualified Data.IntMap as IM
 import qualified Data.IntSet as IS
+import Data.Interval (Interval)
+import qualified Data.Interval as IV
 import Data.IntervalMap.Lazy (IntervalMap)
 import qualified Data.IntervalMap.Lazy as IVM
 import Data.IntervalSet (IntervalSet)
@@ -121,8 +123,8 @@ chunky str = (inp, map go chunks)
       b' <- readMaybe b
       pure (a', o', b', tailMay x'')
 
-processFilter :: String -> Maybe (String, Workflow String)
-processFilter str = do
+processWorkflow :: String -> Maybe (String, Workflow String)
+processWorkflow str = do
   (conds, Left backup) <- unsnoc filterParts
   rules <- for conds \case
     Right (a, b, c, Just d) -> Just $ Rule a b c (classify d)
@@ -142,43 +144,49 @@ processInp = fmap M.fromList . traverse go . snd . chunky
       Right (x, _, n, _) -> Just (x, n)
       _ -> Nothing
 
-accepted ::
-  Map String (Workflow String) ->
-  Map XMAS Int ->
-  Bool
-accepted filts mp = go "in"
+-- accepted ::
+--   Map String (Workflow String) ->
+--   Map XMAS Int ->
+--   Bool
+-- accepted filts mp = go "in"
+--   where
+--     go i = case determine (filts M.! i) of
+--       Defer j -> go j
+--       Accept -> True
+--       Reject -> False
+--     determine Workflow {..} = foldr go' wfDefault wfRules
+--       where
+--         go' Rule {..} rest
+--           | compare (mp M.! rXmas) rVal == rOp = rResult
+--           | otherwise = rest
+
+evalWorkflow :: Map XMAS Int -> Workflow Bool -> Bool
+evalWorkflow mp = go
   where
-    go i = case determine (filts M.! i) of
-      Defer j -> go j
-      Accept -> True
-      Reject -> False
-    determine Workflow {..} = foldr go' wfDefault wfRules
-      where
-        go' Rule {..} rest
-          | compare (mp M.! rXmas) rVal == rOp = rResult
-          | otherwise = rest
-
-accepted2 ::
-  Map String (Workflow String) ->
-  Map XMAS Int ->
-  Bool
-accepted2 filts mp =
-  result False True absurd
-    . hylo (cataWorkflow mp) (anaWorkflow filts)
-    $ "in"
-
-anaWorkflow :: Map String (Workflow String) -> String -> Workflow String
-anaWorkflow wfs = (wfs M.!)
-
-cataWorkflow :: Map XMAS Int -> Workflow (Result a) -> Result a
-cataWorkflow mp = go
-  where
-    go Workflow {..} = foldr eval (join wfDefault) wfRules
+    go Workflow {..} = foldr eval (unResult wfDefault) wfRules
     eval Rule {..} rest
-      | compare (mp M.! rXmas) rVal == rOp = join rResult
+      | compare (mp M.! rXmas) rVal == rOp = unResult rResult
       | otherwise = rest
+    unResult = result False True id
+
+xmasRange :: Interval Int
+xmasRange = IV.Finite 1 IV.<=..<= IV.Finite 4000
 
 newtype XmasSet = XmasSet (IntervalMap Int (IntervalMap Int (IntervalMap Int (IntervalSet Int))))
+  deriving stock (Eq, Show, Generic)
+
+instance NFData XmasSet
+
+allXmas :: XmasSet
+allXmas =
+  XmasSet
+    . IVM.singleton xmasRange
+    . IVM.singleton xmasRange
+    . IVM.singleton xmasRange
+    $ IVS.singleton xmasRange
+
+noXmas :: XmasSet
+noXmas = XmasSet IVM.empty
 
 intersect :: XmasSet -> XmasSet -> XmasSet
 intersect (XmasSet xs) (XmasSet xs') =
@@ -196,17 +204,47 @@ union (XmasSet xs) (XmasSet xs') =
       xs
       xs'
 
--- difference :: XmasSet -> XmasSet -> XmasSet
--- difference = 
---   XmasSet $
---     IVM.intersectionWith
---       (IVM.intersectionWith (IVM.intersectionWith IVS.intersection))
---       xs
---       xs'
+difference :: XmasSet -> XmasSet -> XmasSet
+difference (XmasSet xs) (XmasSet xs') =
+  XmasSet $
+    diffWith (diffWith (diffWith IVS.difference)) xs xs'
+  where
+    diffWith f a b = IVM.intersectionWith f a b <> IVM.difference a b
 
--- cataWorkflow2 :: Workflow XmasSet -> XmasSet
--- cataWorkflow2 Workflow{..} = _
+size :: XmasSet -> Int
+size (XmasSet xs) = (sumBySize . sumBySize . sumBySize) (sum . map ivalSize . IVS.toList) xs
+  where
+    sumBySize f = sum . map (\(i,a) -> ivalSize i * f a) . IVM.toList
+    ivalSize i = IV.width i - 1 +
+      countTrue (== IV.Closed) (map snd [IV.lowerBound' i, IV.upperBound' i])
 
+-- ....x   .....   ....x
+-- .x..x   x...x   .x...
+-- .xx.x   xx.x.   ..x.x
+-- x..x.   .xx.x   x..x.
+--
+-- combine A^B and whatever is in A but not B
+
+xmasRule :: Rule XmasSet -> XmasSet -> XmasSet
+xmasRule Rule {..} rest = case rResult of
+  Reject -> rest `difference` ivalXmas
+  Accept -> ivalXmas `union` rest
+  Defer s -> (s `intersect` ivalXmas) `union` (rest `difference` ivalXmas)
+  where
+    ival = case rOp of
+      LT -> IV.Finite 1 IV.<=..< IV.Finite rVal
+      GT -> IV.Finite rVal IV.<..<= IV.Finite 4000
+      EQ -> IV.singleton rVal
+    ivalXmas = case rXmas of
+      X -> XmasSet $ IVM.singleton ival . IVM.singleton xmasRange . IVM.singleton xmasRange $ IVS.singleton xmasRange
+      M -> XmasSet $ IVM.singleton xmasRange . IVM.singleton ival . IVM.singleton xmasRange $ IVS.singleton xmasRange
+      A -> XmasSet $ IVM.singleton xmasRange . IVM.singleton xmasRange . IVM.singleton ival $ IVS.singleton xmasRange
+      S -> XmasSet $ IVM.singleton xmasRange . IVM.singleton xmasRange . IVM.singleton xmasRange $ IVS.singleton ival
+
+workflowInterval :: Workflow XmasSet -> XmasSet
+workflowInterval Workflow {..} = foldr xmasRule (unResult wfDefault) wfRules
+  where
+    unResult = result noXmas allXmas id
 
 day19a :: _ :~> _
 day19a =
@@ -214,18 +252,22 @@ day19a =
     { sParse = \inp -> do
         (a, b) <- listTup $ splitOn "\n\n" inp
         (,)
-          <$> fmap M.fromList (traverse processFilter (lines a))
+          <$> fmap M.fromList (traverse processWorkflow (lines a))
           <*> traverse processInp (lines b),
       sShow = show,
-      sSolve = \(filts, xs) -> Just . sum . map sum . filter (accepted2 filts) $ xs
+      sSolve = noFail $ \(wfs, xs) ->
+          sum
+          . map sum
+          . filter (\x -> hylo (evalWorkflow x) (wfs M.!) "in")
+          $ xs
     }
 
 day19b :: _ :~> _
 day19b =
   MkSol
-    { sParse = sParse day19a,
+    { sParse = fmap M.fromList . traverse processWorkflow . takeWhile (not . null) . lines,
       sShow = show,
       sSolve =
-        noFail $
-          id
+        noFail $ \wfs ->
+          size $ hylo workflowInterval (wfs M.!) "in"
     }
