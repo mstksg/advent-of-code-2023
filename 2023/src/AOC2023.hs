@@ -19,6 +19,7 @@ where
 
 import AOC.Discover
 import AOC.Run
+import AOC.Run.Interactive
 import AOC2023.Day01 as AOC
 import AOC2023.Day02 as AOC
 import AOC2023.Day03 as AOC

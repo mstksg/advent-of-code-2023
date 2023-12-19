@@ -103,12 +103,12 @@ data ChallengeData = CD
 challengePaths :: Integer -> ChallengeSpec -> ChallengePaths
 challengePaths y (CS d p) =
   CP
-    { _cpPrompt = printf "prompt/%04d/%02d%c" d' p' <.> "md",
-      _cpCodeBlocks = printf "data/%04d/code-blocks/%02d%c" d' p' <.> "txt",
-      _cpInput = printf "data/%04d/%02d" d' <.> "txt",
-      _cpAnswer = printf "data/%04d/ans/%02d%c" d' p' <.> "txt",
+    { _cpPrompt = printf "prompt/%04d/%02d%c" y d' p' <.> "md",
+      _cpCodeBlocks = printf "data/%04d/code-blocks/%02d%c" y d' p' <.> "txt",
+      _cpInput = printf "data/%04d/%02d" y d' <.> "txt",
+      _cpAnswer = printf "data/%04d/ans/%02d%c" y d' p' <.> "txt",
       _cpTests = printf "test-data/%04d/%02d%c" y d' p' <.> "txt",
-      _cpLog = printf "logs/submission/%04d/%02d%c" d' p' <.> "txt"
+      _cpLog = printf "logs/submission/%04d/%02d%c" y d' p' <.> "txt"
     }
   where
     d' = dayInt d

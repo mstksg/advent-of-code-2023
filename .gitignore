@@ -1,10 +1,10 @@
 .stack-work/
 *~
-/data
-/prompt
+*/data
+*/prompt
 /aoc-conf.yaml
-/logs
-/bench-out
+*/logs
+*/bench-out
 /tmp
 /scratch
 _*

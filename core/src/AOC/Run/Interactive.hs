@@ -59,7 +59,7 @@ import Data.Char
 import qualified Data.Map as M
 import Data.Maybe
 import Data.Text (Text)
-import Language.Haskell.TH as TH
+import qualified Language.Haskell.TH as TH
 
 data RunInteractive = RI
   { _riYear :: Integer,
@@ -246,8 +246,9 @@ eitherIO act =
 --
 -- Assumes that most final 4-digit number in the module components represents
 -- the year.
-fromSol :: TH.Name -> Q TH.Exp
-fromSol nm =
+fromSol :: TH.Name -> TH.Q TH.Exp
+fromSol nm = do
+  ss <- TH.unTypeCode $ specSomeSol nm
   pure $
     TH.RecConE
       'RI
@@ -255,18 +256,14 @@ fromSol nm =
         ( '_riSpec,
           TH.RecConE
             'CS
-            [ ('_csDay, dExp),
-              ('_csPart, pExp)
+            [ ('_csDay, TH.unType $ liftDay d),
+              ('_csPart, TH.unType $ liftPart p)
             ]
         ),
-        ('_riSolution, TH.VarE nm)
+        ('_riSolution, ss)
       ]
   where
-    CS d p = solSpecStr_ (nameBase nm)
-    dExp = TH.AppE (TH.VarE 'mkDay_) (TH.LitE (TH.IntegerL (dayInt d)))
-    pExp = case p of
-      Part1 -> TH.ConE 'Part1
-      Part2 -> TH.ConE 'Part2
+    CS d p = solSpec nm
     year :: Integer
     year =
       read
@@ -277,4 +274,4 @@ fromSol nm =
         . words
         . map (\c -> if isDigit c then c else ' ')
         . fromMaybe (error "Identifier needs a module")
-        $ nameModule nm
+        $ TH.nameModule nm

@@ -21,6 +21,9 @@ module AOC.Discover
     solSpecStr,
     solSpecStr_,
     charPart,
+    specSomeSol,
+    liftDay,
+    liftPart,
   )
 where
 
@@ -42,9 +45,9 @@ import qualified Data.Set as S
 import Data.Traversable
 import Data.Void
 import GHC.Exts
-import Language.Haskell.TH as TH
+import qualified Language.Haskell.TH as TH
 import Language.Haskell.TH.Datatype
-import Language.Haskell.TH.Syntax (TExp (..))
+import qualified Language.Haskell.TH.Syntax as TH
 import qualified Text.Megaparsec as P
 import qualified Text.Megaparsec.Char as P
 import qualified Text.Megaparsec.Char.Lexer as PL
@@ -80,7 +83,7 @@ lookupSolution CS {..} = M.lookup _csPart <=< M.lookup _csDay
 -- solSpec \'day02a == CS { _csDay = 1, _csPart = 'a' }
 -- @
 solSpec :: TH.Name -> ChallengeSpec
-solSpec = solSpecStr_ . nameBase
+solSpec = solSpecStr_ . TH.nameBase
 
 solSpecStr :: String -> Either (P.ParseErrorBundle String Void) ChallengeSpec
 solSpecStr = P.runParser challengeName ""
@@ -96,11 +99,11 @@ type Parser = P.Parsec Void String
 -- a lower-case letter corresponding to the part of the challenge.
 --
 -- See 'mkChallengeMap' for a description of usage.
-solutionList :: Code Q [(Day, (Part, SomeSolution))]
+solutionList :: TH.Code TH.Q [(Day, (Part, SomeSolution))]
 solutionList =
-  Code $
-    TExp . ListE . catMaybes
-      <$> traverse (fmap (fmap unType) . specExp) (S.toList challengeSpecUniverse)
+  TH.Code $
+    TH.TExp . TH.ListE . catMaybes
+      <$> traverse (fmap (fmap TH.unType) . specExp) (S.toList challengeSpecUniverse)
 
 -- | Meant to be called like:
 --
@@ -118,27 +121,38 @@ challengeSpecUniverse =
     CS <$> [minBound .. maxBound] <*> [minBound .. maxBound]
 
 -- | Looks up the name in scope
-specExp :: ChallengeSpec -> Q (Maybe (TExp (Day, (Part, SomeSolution))))
+specExp :: ChallengeSpec -> TH.Q (Maybe (TH.TExp (Day, (Part, SomeSolution))))
 specExp s@(CS d p) = do
-  mn <- lookupValueName (specName s)
+  mn <- TH.lookupValueName (specName s)
   for mn \n -> do
-    isNF <- solverNFData n
-    let con
-          | isNF = 'MkSomeSolNF
-          | otherwise = 'MkSomeSolWH
+    ss <- TH.unTypeCode $ specSomeSol n
     pure $
-      TExp $
-        tTupE
-          [ VarE 'mkDay_ `AppE` LitE (IntegerL (dayInt d)),
-            tTupE
-              [ ConE (partCon p),
-                ConE con `AppE` VarE (mkName (specName s))
-              ]
+      TH.TExp $
+        TH.TupE
+          [ Just . TH.unType $ liftDay d,
+            Just $
+              TH.TupE
+                [ Just . TH.unType $ liftPart p,
+                  Just ss
+                ]
           ]
-  where
-    partCon Part1 = 'Part1
-    partCon Part2 = 'Part2
-    tTupE = TupE . fmap Just
+
+-- | Looks up the name in scope
+specSomeSol :: TH.Name -> TH.Code TH.Q SomeSolution
+specSomeSol n = TH.Code do
+  isNF <- solverNFData n
+  let con
+        | isNF = 'MkSomeSolNF
+        | otherwise = 'MkSomeSolWH
+  pure $ TH.TExp $ TH.ConE con `TH.AppE` TH.VarE n
+
+liftDay :: Day -> TH.TExp Day
+liftDay d = TH.TExp $ TH.VarE 'mkDay_ `TH.AppE` TH.LitE (TH.IntegerL (dayInt d))
+
+liftPart :: Part -> TH.TExp Part
+liftPart = \case
+  Part1 -> TH.TExp $ TH.ConE 'Part1
+  Part2 -> TH.TExp $ TH.ConE 'Part2
 
 specName :: ChallengeSpec -> String
 specName (CS d p) = printf "day%02d%c" (dayInt d) (partChar p)
@@ -164,11 +178,11 @@ charPart _ = Nothing
 
 -- | Check if a solver identifier is of type @A ':~>' B@, where @B@ is an
 -- instance of 'NFData'.
-solverNFData :: TH.Name -> Q Bool
+solverNFData :: TH.Name -> TH.Q Bool
 solverNFData n
   | checkIfNFData =
-      reify n >>= \case
-        VarI _ (ConT c `AppT` a `AppT` _) _
+      TH.reify n >>= \case
+        TH.VarI _ (TH.ConT c `TH.AppT` a `TH.AppT` _) _
           | c == ''(:~>) -> deepInstance ''NFData a
         _ -> pure False
   | otherwise = pure False
@@ -179,7 +193,7 @@ deepInstance ::
   TH.Name ->
   -- | type
   TH.Type ->
-  Q Bool
+  TH.Q Bool
 deepInstance cn = fmap isJust . runMaybeT . deepInstance_ cn
 
 deepInstance_ ::
@@ -187,13 +201,13 @@ deepInstance_ ::
   TH.Name ->
   -- | type
   TH.Type ->
-  MaybeT Q ()
+  MaybeT TH.Q ()
 deepInstance_ cn t = do
-  insts <- maybe empty pure . NE.nonEmpty =<< lift (reifyInstances cn [t])
+  insts <- maybe empty pure . NE.nonEmpty =<< lift (TH.reifyInstances cn [t])
   forM_ insts $ \case
-    InstanceD _ ctx instHead _ -> do
-      uni <- lift $ unifyTypes [ConT cn `AppT` t, instHead]
+    TH.InstanceD _ ctx instHead _ -> do
+      uni <- lift $ unifyTypes [TH.ConT cn `TH.AppT` t, instHead]
       forM_ ctx $ \case
-        AppT (ConT c) v -> deepInstance_ c (applySubstitution uni v)
+        TH.AppT (TH.ConT c) v -> deepInstance_ c (applySubstitution uni v)
         _ -> empty
     _ -> empty
