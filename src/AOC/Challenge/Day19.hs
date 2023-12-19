@@ -22,8 +22,8 @@
 --     will recommend what should go in place of the underscores.
 
 module AOC.Challenge.Day19 (
-    -- day19a
-  -- , day19b
+    day19a
+  , day19b
   ) where
 
 import           AOC.Prelude
@@ -45,16 +45,80 @@ import qualified Text.Megaparsec                as P
 import qualified Text.Megaparsec.Char           as P
 import qualified Text.Megaparsec.Char.Lexer     as PP
 
+-- qs{s>3448:A,lnx}
+
+data XMAS = X | M | A | S
+  deriving (Eq, Ord, Show, Generic)
+
+instance NFData XMAS
+
+chunky :: String -> (Maybe String, [Either String (XMAS,Ordering,Int,Maybe String)])
+chunky str = (mfilter (not . null) (Just inp), map go chunks)
+  where
+    (inp, str') = span (/='{') str
+    chunks = splitOn "," $ filter (`notElem` "{}") str'
+    go x = maybe (Left x) Right do
+      a:(o:x') <- pure x
+      a' <- case a of
+        'x' -> Just X
+        'm' -> Just M
+        'a' -> Just A
+        's' -> Just S
+        _ -> Nothing
+      o' <- case o of
+        '<' -> Just LT
+        '>' -> Just GT
+        '=' -> Just EQ
+        _ -> Nothing
+      (b,x'') <- pure $ span isDigit x'
+      b' <- readMaybe b
+      pure (a', o', b', tailMay x'')
+
+processFilter :: String -> Maybe (String, ([(XMAS, Ordering, Int, Either Bool String)], Either Bool String))
+processFilter str = do
+  (Just x, parts) <- pure $ chunky str
+  filts <- for (init parts) \case
+    Right (a,b,c,d) -> (a,b,c,) . classify <$> d
+    Left _ -> Nothing
+  Left bu <- pure $ last parts
+  pure (x, (filts, classify bu))
+  where
+    classify = \case
+      "R" -> Left False
+      "A" -> Left True
+      p -> Right p
+
+processInp :: String -> Maybe (Map XMAS Int)
+processInp str = M.fromList <$> for parts (\case Right (x,_,n,_) -> Just (x, n); _ -> Nothing)
+  where
+    (_, parts) = chunky str
+
+
 day19a :: _ :~> _
 day19a = MkSol
-    { sParse = Just . lines
+    { sParse = \inp -> case splitOn "\n\n" inp of
+                         [a,b] -> (,)  <$> fmap M.fromList (traverse processFilter (lines a))
+                                       <*> traverse processInp (lines b)
+                         _ -> Nothing
     , sShow  = show
-    , sSolve = Just
+    , sSolve = \(filts, xs) -> Just . sum . map sum . filter (accepted filts) $ xs
     }
+  where
+    accepted filts mp = go "in"
+      where
+        go i = case determine (filts M.! i) of
+          Right j -> go j
+          Left b -> b
+        determine (fs, x) = foldr go' x fs
+          where
+            go' (y, o, n, next) rest
+                | compare (mp M.! y) n == o = next
+                | otherwise = rest
 
 day19b :: _ :~> _
 day19b = MkSol
     { sParse = sParse day19a
     , sShow  = show
-    , sSolve = Just
+    , sSolve = noFail $
+          id
     }
