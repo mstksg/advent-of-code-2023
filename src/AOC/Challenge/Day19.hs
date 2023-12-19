@@ -31,6 +31,10 @@ import Data.Functor.Foldable
 import qualified Data.Graph.Inductive as G
 import qualified Data.IntMap as IM
 import qualified Data.IntSet as IS
+import Data.IntervalMap.Lazy (IntervalMap)
+import qualified Data.IntervalMap.Lazy as IVM
+import Data.IntervalSet (IntervalSet)
+import qualified Data.IntervalSet as IVS
 import qualified Data.List.NonEmpty as NE
 import qualified Data.List.PointedList as PL
 import qualified Data.List.PointedList.Circular as PLC
@@ -173,6 +177,36 @@ cataWorkflow mp = go
     eval Rule {..} rest
       | compare (mp M.! rXmas) rVal == rOp = join rResult
       | otherwise = rest
+
+newtype XmasSet = XmasSet (IntervalMap Int (IntervalMap Int (IntervalMap Int (IntervalSet Int))))
+
+intersect :: XmasSet -> XmasSet -> XmasSet
+intersect (XmasSet xs) (XmasSet xs') =
+  XmasSet $
+    IVM.intersectionWith
+      (IVM.intersectionWith (IVM.intersectionWith IVS.intersection))
+      xs
+      xs'
+
+union :: XmasSet -> XmasSet -> XmasSet
+union (XmasSet xs) (XmasSet xs') =
+  XmasSet $
+    IVM.unionWith
+      (IVM.unionWith (IVM.unionWith IVS.union))
+      xs
+      xs'
+
+-- difference :: XmasSet -> XmasSet -> XmasSet
+-- difference = 
+--   XmasSet $
+--     IVM.intersectionWith
+--       (IVM.intersectionWith (IVM.intersectionWith IVS.intersection))
+--       xs
+--       xs'
+
+-- cataWorkflow2 :: Workflow XmasSet -> XmasSet
+-- cataWorkflow2 Workflow{..} = _
+
 
 day19a :: _ :~> _
 day19a =
