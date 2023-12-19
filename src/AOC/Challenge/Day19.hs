@@ -1,6 +1,3 @@
-{-# OPTIONS_GHC -Wno-unused-imports #-}
-{-# OPTIONS_GHC -Wno-unused-top-binds #-}
-
 -- |
 -- Module      : AOC.Challenge.Day19
 -- License     : BSD3
@@ -9,49 +6,31 @@
 -- Portability : non-portable
 --
 -- Day 19.  See "AOC.Solver" for the types used in this module!
---
--- After completing the challenge, it is recommended to:
---
--- *   Replace "AOC.Prelude" imports to specific modules (with explicit
---     imports) for readability.
--- *   Remove the @-Wno-unused-imports@ and @-Wno-unused-top-binds@
---     pragmas.
--- *   Replace the partial type signatures underscores in the solution
---     types @_ :~> _@ with the actual types of inputs and outputs of the
---     solution.  You can delete the type signatures completely and GHC
---     will recommend what should go in place of the underscores.
 module AOC.Challenge.Day19
   ( day19a,
     day19b,
   )
 where
 
-import AOC.Prelude
-import Data.Functor.Foldable
-import qualified Data.Graph.Inductive as G
-import qualified Data.IntMap as IM
-import qualified Data.IntSet as IS
+import AOC.Common (countTrue, listTup)
+import AOC.Solver (noFail, (:~>) (..))
+import Control.DeepSeq (NFData)
+import Control.Lens (unsnoc)
+import Data.Char (isDigit)
+import Data.Functor.Foldable (hylo)
 import Data.Interval (Interval)
 import qualified Data.Interval as IV
 import Data.IntervalMap.Strict (IntervalMap)
 import qualified Data.IntervalMap.Strict as IVM
 import Data.IntervalSet (IntervalSet)
 import qualified Data.IntervalSet as IVS
-import qualified Data.List.NonEmpty as NE
-import qualified Data.List.PointedList as PL
-import qualified Data.List.PointedList.Circular as PLC
+import Data.List.Split (splitOn)
+import Data.Map (Map)
 import qualified Data.Map as M
-import qualified Data.OrdPSQ as PSQ
-import qualified Data.Sequence as Seq
-import qualified Data.Set as S
-import qualified Data.Text as T
-import qualified Data.Vector as V
-import qualified Linear as L
-import qualified Text.Megaparsec as P
-import qualified Text.Megaparsec.Char as P
-import qualified Text.Megaparsec.Char.Lexer as PP
-
--- qs{s>3448:A,lnx}
+import Data.Traversable (for)
+import GHC.Generics (Generic)
+import Safe (tailMay)
+import Text.Read (readMaybe)
 
 data XMAS = X | M | A | S
   deriving stock (Eq, Ord, Show, Generic, Enum)
@@ -74,23 +53,6 @@ result r a d = \case
   Reject -> r
   Accept -> a
   Defer x -> d x
-
--- | like Either monad
-instance Applicative Result where
-  pure = Defer
-  (<*>) = \case
-    Reject -> const Reject
-    Accept -> const Accept
-    Defer f -> \case
-      Reject -> Reject
-      Accept -> Accept
-      Defer x -> Defer (f x)
-
-instance Monad Result where
-  (>>=) = \case
-    Reject -> const Reject
-    Accept -> const Accept
-    Defer x -> ($ x)
 
 data Rule a = Rule
   { rXmas :: XMAS,
@@ -144,22 +106,6 @@ parseBag = fmap M.fromList . traverse go . snd . chunky
       Right (x, _, n, _) -> Just (x, n)
       _ -> Nothing
 
--- accepted ::
---   Map String (Workflow String) ->
---   Map XMAS Int ->
---   Bool
--- accepted filts mp = go "in"
---   where
---     go i = case determine (filts M.! i) of
---       Defer j -> go j
---       Accept -> True
---       Reject -> False
---     determine Workflow {..} = foldr go' wfDefault wfRules
---       where
---         go' Rule {..} rest
---           | compare (mp M.! rXmas) rVal == rOp = rResult
---           | otherwise = rest
-
 evalWorkflow :: Map XMAS Int -> Workflow Bool -> Bool
 evalWorkflow mp = go
   where
@@ -169,6 +115,22 @@ evalWorkflow mp = go
       | otherwise = rest
     unResult = result False True id
 
+day19a :: (Map String (Workflow String), [Map XMAS Int]) :~> Int
+day19a =
+  MkSol
+    { sParse = \inp -> do
+        (a, b) <- listTup $ splitOn "\n\n" inp
+        (,)
+          <$> fmap M.fromList (traverse parseWorkflow (lines a))
+          <*> traverse parseBag (lines b),
+      sShow = show,
+      sSolve = noFail $ \(wfs, xs) ->
+        sum
+          . map sum
+          . filter (\x -> hylo (evalWorkflow x) (wfs M.!) "in")
+          $ xs
+    }
+
 xmasRange :: Interval Int
 xmasRange = IV.Finite 1 IV.<=..<= IV.Finite 4000
 
@@ -177,17 +139,8 @@ newtype XmasSet = XmasSet (IntervalMap Int (IntervalMap Int (IntervalMap Int (In
 
 instance NFData XmasSet
 
-allXmas :: XmasSet
-allXmas =
-  XmasSet
-    . IVM.singleton xmasRange
-    . IVM.singleton xmasRange
-    . IVM.singleton xmasRange
-    $ IVS.singleton xmasRange
-
-noXmas :: XmasSet
-noXmas = XmasSet IVM.empty
-
+-- | Optimization to merge connected map entries together if their values are
+-- equal
 reMap :: (Ord k, Eq a) => IntervalMap k a -> IntervalMap k a
 reMap = IVM.fromList . eat . IVM.toAscList
   where
@@ -253,24 +206,15 @@ workflowInterval :: Workflow XmasSet -> XmasSet
 workflowInterval Workflow {..} = foldr xmasRule (unResult wfDefault) wfRules
   where
     unResult = result noXmas allXmas id
+    allXmas =
+      XmasSet
+        . IVM.singleton xmasRange
+        . IVM.singleton xmasRange
+        . IVM.singleton xmasRange
+        $ IVS.singleton xmasRange
+    noXmas = XmasSet IVM.empty
 
-day19a :: _ :~> _
-day19a =
-  MkSol
-    { sParse = \inp -> do
-        (a, b) <- listTup $ splitOn "\n\n" inp
-        (,)
-          <$> fmap M.fromList (traverse parseWorkflow (lines a))
-          <*> traverse parseBag (lines b),
-      sShow = show,
-      sSolve = noFail $ \(wfs, xs) ->
-        sum
-          . map sum
-          . filter (\x -> hylo (evalWorkflow x) (wfs M.!) "in")
-          $ xs
-    }
-
-day19b :: _ :~> _
+day19b :: Map String (Workflow String) :~> Int
 day19b =
   MkSol
     { sParse = fmap M.fromList . traverse parseWorkflow . takeWhile (not . null) . lines,
