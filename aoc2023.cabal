@@ -29,7 +29,6 @@ common common-options
                      , ansi-terminal
                      , base >=4.7 && <5
                      , bitvec
-                     , data-interval
                      , bytestring
                      , comonad
                      , conduino
@@ -38,6 +37,7 @@ common common-options
                      , containers
                      , criterion
                      , data-default-class
+                     , data-interval
                      , data-memocombinators
                      , deepseq
                      , dependent-sum
@@ -48,12 +48,11 @@ common common-options
                      , finitary
                      , finite-typelits
                      , foldl
+                     , generic-lens
                      , ghc-typelits-natnormalise
                      , groups
                      , hashable
                      , haskeline
-                     -- , haskell-names
-                     -- , haskell-src-exts
                      , heredoc
                      , hpack
                      , lens
@@ -83,6 +82,8 @@ common common-options
                      , vector-algorithms
                      , vector-sized
                      , yaml
+                     -- , haskell-names
+                     -- , haskell-src-exts
 
   ghc-options:         -Wall
                        -Wcompat
@@ -107,6 +108,7 @@ common common-options
       BangPatterns
       BlockArguments
       DataKinds
+      DeriveAnyClass
       DeriveFoldable
       DeriveFunctor
       DeriveGeneric

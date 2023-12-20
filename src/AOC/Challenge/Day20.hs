@@ -28,6 +28,7 @@ where
 
 import AOC.Prelude
 import Data.Bitraversable
+import Data.Generics.Labels ()
 import qualified Data.Graph.Inductive as G
 import qualified Data.IntMap as IM
 import qualified Data.IntSet as IS
@@ -48,8 +49,7 @@ import qualified Text.Megaparsec.Char.Lexer as PP
 
 data ModuleType = FlipFlop | Conjuction
   deriving stock (Show, Eq, Ord, Generic)
-
-instance NFData ModuleType
+  deriving anyclass (NFData)
 
 parseLine :: String -> Maybe (Maybe (ModuleType, String), [String])
 parseLine = bitraverse pName (pure . pDest) <=< listTup . splitOn " -> "
@@ -62,29 +62,30 @@ parseLine = bitraverse pName (pure . pDest) <=< listTup . splitOn " -> "
     pDest = splitOn ", "
 
 data ModuleData = MD
-  { mdForward :: Set String,
+  { mdForward :: Seq String,
     mdBackward :: Set String,
     mdType :: ModuleType
   }
   deriving stock (Show, Generic)
+  deriving anyclass (NFData)
 
-instance NFData ModuleData
+data Pulse = Low | High
+  deriving stock (Show, Eq, Ord, Generic)
+  deriving anyclass (NFData)
 
 data ModuleState = MS
   { msFlipFlops :: !(Set String),
     msConjunctions :: !(Map String (Set String))
   }
   deriving stock (Show, Generic)
-
-instance NFData ModuleState
+  deriving anyclass (NFData)
 
 data ModuleConfig = MC
-  { mcBroadcast :: Set String,
+  { mcBroadcast :: Seq String,
     mcModules :: Map String ModuleData
   }
   deriving stock (Show, Generic)
-
-instance NFData ModuleConfig
+  deriving anyclass (NFData)
 
 assembleConfig :: [(Maybe (ModuleType, String), [String])] -> Maybe ModuleConfig
 assembleConfig ms = do
@@ -92,30 +93,88 @@ assembleConfig ms = do
   pure $
     MC
       { mcBroadcast = bc,
-        mcModules = M.intersectionWith (\(f,t) b -> MD f b t) forwards bckwrds
+        mcModules =
+          M.intersectionWith (\(f, t) b -> MD f b t) forwards bckwrds
+            <> ((\(f, t) -> MD f S.empty t) <$> M.difference forwards bckwrds)
       }
   where
     T2 broadcast forwards =
       flip foldMap ms $ \(mn, ds) ->
         case mn of
-          Just (a, n) -> T2 mempty (M.singleton n (S.fromList ds, a))
-          Nothing -> T2 (Just (First (S.fromList ds))) mempty
+          Just (a, n) -> T2 mempty (M.singleton n (Seq.fromList ds, a))
+          Nothing -> T2 (Just (First (Seq.fromList ds))) mempty
     bckwrds =
       M.fromListWith
         (<>)
         [ (v, S.singleton k)
           | (k, (vs, _)) <- M.toList forwards,
-            v <- S.toList vs
+            v <- toList vs
         ]
+
+stepPulse :: ModuleConfig -> String -> Pulse -> State ModuleState (Seq (String, Pulse))
+stepPulse MC {..} dest pulseType = case M.lookup dest mcModules of
+  Nothing -> pure Seq.empty
+  Just MD {..} -> do
+    newPulse <- case mdType of
+      FlipFlop -> case pulseType of
+        High -> pure Nothing
+        Low ->
+          fmap Just $
+            #msFlipFlops . contains dest %%= \wasOn ->
+              if wasOn
+                then (Low, False)
+                else (High, True)
+      Conjuction ->
+        Just
+          <$> uses (#msConjunctions . at dest . non S.empty) \allHighs ->
+            if allHighs == mdBackward
+              then Low
+              else High
+    case newPulse of
+      Just p -> do
+        -- we really only need to update if they are conjunctions
+        let updates = M.fromList $ map (,S.singleton dest) (toList mdForward)
+        modifying #msConjunctions \s ->
+          M.unionWith
+            (case p of Low -> S.difference; High -> S.union)
+            s
+            updates
+        pure $ (,p) <$> mdForward
+      Nothing -> pure Seq.empty
+
+pushButton :: ModuleConfig -> State ModuleState (Int, Int)
+pushButton mc@MC {..} = go 0 0 Nothing
+  where
+    go !numLow !numHigh = \case
+      Nothing ->
+        go (numLow + 1) numHigh (Just ((,Low) <$> mcBroadcast))
+      Just Seq.Empty -> pure (numLow, numHigh)
+      Just ((dest, pulseType) Seq.:<| queue) -> do
+        -- modify traceShowId
+        queue' <- stepPulse mc dest pulseType
+        let (numLow', numHigh') = case pulseType of
+              Low -> (numLow + 1, numHigh)
+              High -> (numLow, numHigh + 1)
+        go numLow' numHigh' (Just (queue <> queue'))
+
+runModules :: ModuleConfig -> Int
+runModules mc = evalState (go 1000 0 0) (MS S.empty M.empty)
+  where
+    go :: Int -> Int -> Int -> State ModuleState Int
+    go n numLow numHigh
+      | n <= 0 = pure $ numLow * numHigh
+    go n !numLow !numHigh = do
+      (newLow, newHigh) <- pushButton mc
+      go (n - 1) (numLow + newLow) (numHigh + newHigh)
 
 day20a :: _ :~> _
 day20a =
   MkSol
     { sParse = traverse parseLine . lines,
       sShow = show,
-      sSolve = assembleConfig
-        -- noFail $
-        --   id
+      sSolve = fmap runModules . assembleConfig
+      -- noFail $
+      --   id
     }
 
 day20b :: _ :~> _
@@ -124,6 +183,6 @@ day20b =
     { sParse = sParse day20a,
       sShow = show,
       sSolve =
-        noFail $
-          id
+        fmap runModules
+          . assembleConfig
     }
