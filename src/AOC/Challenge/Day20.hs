@@ -22,8 +22,8 @@
 --     will recommend what should go in place of the underscores.
 
 module AOC.Challenge.Day20 (
-    -- day20a
-  -- , day20b
+    day20a
+  , day20b
   ) where
 
 import           AOC.Prelude
@@ -41,20 +41,55 @@ import qualified Data.Set                       as S
 import qualified Data.Text                      as T
 import qualified Data.Vector                    as V
 import qualified Linear                         as L
+import Data.Bitraversable
 import qualified Text.Megaparsec                as P
 import qualified Text.Megaparsec.Char           as P
 import qualified Text.Megaparsec.Char.Lexer     as PP
 
+data ModuleType = FlipFlop | Conjuction
+  deriving stock (Show, Eq, Ord, Generic)
+
+instance NFData ModuleType
+
+parseLine :: String -> Maybe (Maybe (ModuleType, String), [String])
+parseLine = bitraverse pName (pure . pDest) <=< listTup . splitOn " -> "
+  where
+    pName = \case
+      '%':xs -> Just . Just $ (FlipFlop, xs)
+      '&':xs -> Just . Just $ (Conjuction, xs)
+      "broadcaster" -> Just Nothing
+      _ -> Nothing
+    pDest = splitOn ", "
+
+data ModuleState = MS
+    { msFlipFlops :: !(Set String)
+    , msConjunctions :: !(Map String (Set String))
+    }
+  deriving stock (Show, Generic)
+
+data ModuleConfig = MC
+    { mcBroadcast :: Set String
+    , mcForward :: Map String (Set String)
+    , mcBackward :: Map String (Set String)
+    }
+  deriving stock (Show, Generic)
+
+-- assembleConfig :: [(Maybe (ModuleType, String), [String])] -> ModuleConfig
+-- assembleConfig 
+
 day20a :: _ :~> _
 day20a = MkSol
-    { sParse = Just . lines
+    { sParse = noFail $
+          traverse parseLine . lines
     , sShow  = show
-    , sSolve = Just
+    , sSolve = noFail $
+          id
     }
 
 day20b :: _ :~> _
 day20b = MkSol
     { sParse = sParse day20a
     , sShow  = show
-    , sSolve = Just
+    , sSolve = noFail $
+          id
     }
