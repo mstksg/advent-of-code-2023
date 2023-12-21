@@ -28,6 +28,8 @@ where
 
 import AOC.Prelude
 import Data.Bitraversable
+import qualified Data.Conduino as C
+import qualified Data.Conduino.Combinators as C
 import Data.Generics.Labels ()
 import qualified Data.Graph.Inductive as G
 import qualified Data.IntMap as IM
@@ -37,6 +39,7 @@ import qualified Data.List.PointedList as PL
 import qualified Data.List.PointedList.Circular as PLC
 import qualified Data.Map as M
 import qualified Data.OrdPSQ as PSQ
+import qualified Data.Tuple.Strict as STup
 import qualified Data.Sequence as Seq
 import qualified Data.Set as S
 import qualified Data.Text as T
@@ -69,7 +72,11 @@ data ModuleData = MD
   deriving stock (Show, Generic)
   deriving anyclass (NFData)
 
-data Pulse = Low | High
+data PulseType = Low | High
+  deriving stock (Show, Eq, Ord, Generic)
+  deriving anyclass (NFData)
+
+data Pulse = Pulse {pDest :: !String, pType :: !PulseType}
   deriving stock (Show, Eq, Ord, Generic)
   deriving anyclass (NFData)
 
@@ -111,70 +118,182 @@ assembleConfig ms = do
             v <- toList vs
         ]
 
-stepPulse :: ModuleConfig -> String -> Pulse -> State ModuleState (Seq (String, Pulse))
-stepPulse MC {..} dest pulseType = case M.lookup dest mcModules of
-  Nothing -> pure Seq.empty
+stepPulse :: (MonadState ModuleState m) => ModuleConfig -> C.Pipe Pulse Pulse () m ()
+stepPulse MC {..} = C.awaitForever \Pulse {..} -> case M.lookup pDest mcModules of
+  Nothing -> pure ()
   Just MD {..} -> do
     newPulse <- case mdType of
-      FlipFlop -> case pulseType of
+      FlipFlop -> case pType of
         High -> pure Nothing
         Low ->
           fmap Just $
-            #msFlipFlops . contains dest %%= \wasOn ->
+            #msFlipFlops . contains pDest %%= \wasOn ->
               if wasOn
                 then (Low, False)
                 else (High, True)
       Conjuction ->
         Just
-          <$> uses (#msConjunctions . at dest . non S.empty) \allHighs ->
+          <$> uses (#msConjunctions . at pDest . non S.empty) \allHighs ->
             if allHighs == mdBackward
               then Low
               else High
     case newPulse of
       Just p -> do
         -- we really only need to update if they are conjunctions
-        let updates = M.fromList $ map (,S.singleton dest) (toList mdForward)
+        let updates = M.fromList $ map (,S.singleton pDest) (toList mdForward)
         modifying #msConjunctions \s ->
           M.unionWith
             (case p of Low -> S.difference; High -> S.union)
             s
             updates
-        pure $ (,p) <$> mdForward
-      Nothing -> pure Seq.empty
+        for_ mdForward \q -> C.yield $ Pulse q p
+      Nothing -> pure ()
 
-pushButton :: ModuleConfig -> State ModuleState (Int, Int)
-pushButton mc@MC {..} = go 0 0 Nothing
+pushButton :: MonadState ModuleState m => ModuleConfig -> C.Pipe i Pulse () m ()
+pushButton mc@MC{..} = C.feedbackPipeEither $
+         C.concatMap button
+    C..| stepPulse mc
   where
-    go !numLow !numHigh = \case
-      Nothing ->
-        go (numLow + 1) numHigh (Just ((,Low) <$> mcBroadcast))
-      Just Seq.Empty -> pure (numLow, numHigh)
-      Just ((dest, pulseType) Seq.:<| queue) -> do
-        -- modify traceShowId
-        queue' <- stepPulse mc dest pulseType
-        let (numLow', numHigh') = case pulseType of
-              Low -> (numLow + 1, numHigh)
-              High -> (numLow, numHigh + 1)
-        go numLow' numHigh' (Just (queue <> queue'))
+    button = \case
+      Left _ -> (`Pulse` Low) <$> toList mcBroadcast
+      Right x -> [x]
 
-runModules :: ModuleConfig -> Int
-runModules mc = evalState (go 1000 0 0) (MS S.empty M.empty)
+runModules :: Int -> ModuleConfig -> Int
+runModules n0 mc@MC{..} = evalState (C.runPipe p) (MS S.empty M.empty)
   where
-    go :: Int -> Int -> Int -> State ModuleState Int
-    go n numLow numHigh
-      | n <= 0 = pure $ numLow * numHigh
-    go n !numLow !numHigh = do
-      (newLow, newHigh) <- pushButton mc
-      go (n - 1) (numLow + newLow) (numHigh + newHigh)
+    p :: C.Pipe i o u (State ModuleState) Int
+    p = C.replicate n0 ()
+      C..| pushButton mc
+      C..| (multTypes <$> C.foldMap countTypes)
+    countTypes :: Pulse -> STup.T2 (Sum Int) (Sum Int)
+    countTypes Pulse{..} = case pType of
+      Low -> STup.T2 1 0
+      High -> STup.T2 0 1
+    multTypes :: STup.T2 (Sum Int) (Sum Int) -> Int
+    multTypes (STup.T2 (Sum x) (Sum y)) = (x + n0 * (1 + Seq.length mcBroadcast)) * y
+
+  -- evalState (go n0 0 0) (MS S.empty M.empty)
+  -- where
+  --   go :: Int -> Int -> Int -> State ModuleState Int
+  --   go n numLow numHigh
+  --     | n <= 0 = pure $ numLow * numHigh
+  --   go n !numLow !numHigh = do
+  --     (newLow, newHigh) <- pushButton mc
+  --     traceM =<<  gets (latchStates mc)
+  --     go (n - 1) (numLow + newLow) (numHigh + newHigh)
+
+
+  -- where
+  --   go !numLow !numHigh = \case
+  --     Nothing ->
+  --       go (numLow + 1) numHigh (Just ((,Low) <$> mcBroadcast))
+  --     Just Seq.Empty -> pure (numLow, numHigh)
+  --     Just ((dest, pulseType) Seq.:<| queue) -> do
+  --       queue' <- stepPulse mc dest pulseType
+  --       let (numLow', numHigh') = case pulseType of
+  --             Low -> (numLow + 1, numHigh)
+  --             High -> (numLow, numHigh + 1)
+  --       go numLow' numHigh' (Just (queue <> queue'))
+
+
+-- stepPulse :: Monad m => ModuleConfig -> Pulse -> StateT ModuleState m (Seq Pulse)
+-- stepPulse MC {..} Pulse{..} = case M.lookup pDest mcModules of
+--   Nothing -> pure Seq.empty
+--   Just MD {..} -> do
+--     newPulse <- case mdType of
+--       FlipFlop -> case pType of
+--         High -> pure Nothing
+--         Low ->
+--           fmap Just $
+--             #msFlipFlops . contains pDest %%= \wasOn ->
+--               if wasOn
+--                 then (Low, False)
+--                 else (High, True)
+--       Conjuction ->
+--         Just
+--           <$> uses (#msConjunctions . at pDest . non S.empty) \allHighs ->
+--             if allHighs == mdBackward
+--               then Low
+--               else High
+--     case newPulse of
+--       Just p -> do
+--         -- we really only need to update if they are conjunctions
+--         let updates = M.fromList $ map (,S.singleton pDest) (toList mdForward)
+--         modifying #msConjunctions \s ->
+--           M.unionWith
+--             (case p of Low -> S.difference; High -> S.union)
+--             s
+--             updates
+--         pure $ (`Pulse` p) <$> mdForward
+--       Nothing -> pure Seq.empty
+
+-- pushButton :: ModuleConfig -> State ModuleState (Int, Int)
+-- pushButton mc@MC {..} = go 0 0 Nothing
+--   where
+--     go !numLow !numHigh = \case
+--       Nothing ->
+--         go (numLow + 1) numHigh (Just ((,Low) <$> mcBroadcast))
+--       Just Seq.Empty -> pure (numLow, numHigh)
+--       Just ((dest, pulseType) Seq.:<| queue) -> do
+--         queue' <- stepPulse mc dest pulseType
+--         let (numLow', numHigh') = case pulseType of
+--               Low -> (numLow + 1, numHigh)
+--               High -> (numLow, numHigh + 1)
+--         go numLow' numHigh' (Just (queue <> queue'))
+
+-- latchStates :: ModuleConfig -> ModuleState -> String
+-- latchStates MC{..} MS{..} =
+--     [ if isReady then '#' else '.'
+--       | (n, MD{ mdType = Conjuction, ..}) <- M.toList mcModules
+--     , let allHighs = M.findWithDefault S.empty n msConjunctions
+--           isReady = allHighs == mdBackward
+--     ]
+
+-- runModules :: Int -> ModuleConfig -> Int
+-- runModules n0 mc = evalState (go n0 0 0) (MS S.empty M.empty)
+--   where
+--     go :: Int -> Int -> Int -> State ModuleState Int
+--     go n numLow numHigh
+--       | n <= 0 = pure $ numLow * numHigh
+--     go n !numLow !numHigh = do
+--       (newLow, newHigh) <- pushButton mc
+--       traceM =<<  gets (latchStates mc)
+--       go (n - 1) (numLow + newLow) (numHigh + newHigh)
+
+-- pushButton2 :: ModuleConfig -> State ModuleState (Set String)
+-- pushButton2 mc@MC {..} = go S.empty Nothing
+--   where
+--     go emitted  = \case
+--       Nothing ->
+--         go emitted (Just ((,Low) <$> mcBroadcast))
+--       Just Seq.Empty -> emitted
+--       Just ((dest, pulseType) Seq.:<| queue) -> do
+--         -- let emitted' = case M.lookup dest mcModules of
+--         --       Just MD{..}
+--         --         | mdType == Conjuction && pulseType == High puy
+--         queue' <- stepPulse mc dest pulseType
+--         let (numLow', numHigh') = case pulseType of
+--               Low -> (numLow + 1, numHigh)
+--               High -> (numLow, numHigh + 1)
+--         go emitted' (Just (queue <> queue'))
+
+-- runModules2 :: ModuleConfig -> Int
+-- runModules2 mc = evalState (go 1) (MS S.empty M.empty)
+--   where
+--     go :: Int -> State ModuleState Int
+--     go !n = do
+--       rxHit <- pushButton2 mc
+--       if rxHit
+--         then pure n
+--         else go (n + 1)
 
 day20a :: _ :~> _
 day20a =
   MkSol
     { sParse = traverse parseLine . lines,
       sShow = show,
-      sSolve = fmap runModules . assembleConfig
-      -- noFail $
-      --   id
+      sSolve = fmap (runModules 1000) . assembleConfig
+      -- sSolve = fmap (runModules 1000) . assembleConfig
     }
 
 day20b :: _ :~> _
@@ -182,7 +301,6 @@ day20b =
   MkSol
     { sParse = sParse day20a,
       sShow = show,
-      sSolve =
-        fmap runModules
-          . assembleConfig
+      sSolve = Just
+      -- sSolve = fmap (runModules 1000000) . assembleConfig
     }
