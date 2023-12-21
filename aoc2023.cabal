@@ -23,7 +23,7 @@ source-repository head
   location:            https://github.com/mstksg/advent-of-code-dev.git
 
 common common-options
-  build-depends:       advent-of-code-api >=0.2.7
+  build-depends:       advent-of-code-api >=0.2.7 && <0.2.9
                      , Cabal
                      , aeson
                      , ansi-terminal
