@@ -22,8 +22,8 @@
 --     will recommend what should go in place of the underscores.
 
 module AOC.Challenge.Day21 (
-    -- day21a
-  -- , day21b
+    day21a
+  , day21b
   ) where
 
 import           AOC.Prelude
@@ -47,14 +47,33 @@ import qualified Text.Megaparsec.Char.Lexer     as PP
 
 day21a :: _ :~> _
 day21a = MkSol
-    { sParse = Just . lines
+    { sParse = Just . parseAsciiMap (\case '#' -> Just True; 'S' -> Just False; _ -> Nothing)
+    -- , sShow  = ('\n':) . unlines . map (displayAsciiSet '.' 'O')
     , sShow  = show
-    , sSolve = Just
+    , sSolve = noFail $ \mp ->
+        let (M.keysSet->pts, head.M.keys->starting) = M.partition id mp
+            expand = (`S.difference` pts) . S.fromList . concatMap cardinalNeighbs . S.toList
+         in S.size $ iterate expand (S.singleton starting) !!! 64
     }
 
 day21b :: _ :~> _
 day21b = MkSol
     { sParse = sParse day21a
     , sShow  = show
-    , sSolve = Just
+    , sSolve = noFail $ \mp ->
+        let (M.keysSet->pts, head.M.keys->starting@(V2 x0 y0)) = M.partition id mp
+            Just (V2 (V2 xMin yMin) (V2 xMax yMax)) = boundingBox' (M.keys mp)
+            maxPoint = V2 (xMax + 1) (yMax + 1)
+            expandPoint (V2 bx by, ps) = [
+                (V2 (bx + bx') (by + by'), S.singleton (V2 x'' y''))
+              | p <- S.toList ps 
+              , V2 x' y' <- cardinalNeighbs p
+              , let (bx', x'') = x' `divMod` xMax
+                    (by', y'') = y' `divMod` yMax
+             ]
+            expand = M.fromListWith (<>)
+                   . concatMap expandPoint
+                   . M.toList
+         in sum . fmap S.size $
+                iterate expand (M.singleton (V2 0 0) (S.singleton starting)) !!! 26501365
     }
