@@ -23,6 +23,10 @@
 module AOC.Challenge.Day20
   ( day20a,
     day20b,
+    ModuleType(..),
+    ModuleConfig(..),
+    assembleConfig,
+    firstEmissions
   )
 where
 
@@ -30,6 +34,7 @@ import AOC.Prelude
 import Data.Bitraversable
 import qualified Data.Conduino as C
 import qualified Data.Conduino.Combinators as C
+import qualified Data.Conduino.Lift as C
 import Data.Generics.Labels ()
 import qualified Data.Graph.Inductive as G
 import qualified Data.IntMap as IM
@@ -39,11 +44,11 @@ import qualified Data.List.PointedList as PL
 import qualified Data.List.PointedList.Circular as PLC
 import qualified Data.Map as M
 import qualified Data.OrdPSQ as PSQ
-import qualified Data.Tuple.Strict as STup
 import qualified Data.Sequence as Seq
 import qualified Data.Set as S
 import qualified Data.Text as T
 import Data.Tuple.Strict (T2 (..))
+import qualified Data.Tuple.Strict as STup
 import qualified Data.Vector as V
 import qualified Linear as L
 import qualified Text.Megaparsec as P
@@ -149,52 +154,81 @@ stepPulse MC {..} = C.awaitForever \Pulse {..} -> case M.lookup pDest mcModules 
         for_ mdForward \q -> C.yield $ Pulse q p
       Nothing -> pure ()
 
-pushButton :: MonadState ModuleState m => ModuleConfig -> C.Pipe i Pulse () m ()
-pushButton mc@MC{..} = C.feedbackPipeEither $
-         C.concatMap button
-    C..| stepPulse mc
+pushButton :: (MonadState ModuleState m) => ModuleConfig -> C.Pipe i Pulse () m ()
+pushButton mc@MC {..} =
+  C.feedbackPipeEither $
+    C.concatMap button
+      C..| stepPulse mc
   where
     button = \case
       Left _ -> (`Pulse` Low) <$> toList mcBroadcast
       Right x -> [x]
 
 runModules :: Int -> ModuleConfig -> Int
-runModules n0 mc@MC{..} = evalState (C.runPipe p) (MS S.empty M.empty)
+runModules n0 mc@MC {..} = C.runPipePure p
   where
-    p :: C.Pipe i o u (State ModuleState) Int
-    p = C.replicate n0 ()
-      C..| pushButton mc
-      C..| (multTypes <$> C.foldMap countTypes)
+    p :: Monad m => C.Pipe i o u m Int
+    p =
+      C.replicate n0 ()
+        C..| C.runStateP (MS S.empty M.empty) (pushButton mc)
+        C..| (multTypes <$> C.foldMap countTypes)
     countTypes :: Pulse -> STup.T2 (Sum Int) (Sum Int)
-    countTypes Pulse{..} = case pType of
+    countTypes Pulse {..} = case pType of
       Low -> STup.T2 1 0
       High -> STup.T2 0 1
     multTypes :: STup.T2 (Sum Int) (Sum Int) -> Int
     multTypes (STup.T2 (Sum x) (Sum y)) = (x + n0 * (1 + Seq.length mcBroadcast)) * y
 
-  -- evalState (go n0 0 0) (MS S.empty M.empty)
-  -- where
-  --   go :: Int -> Int -> Int -> State ModuleState Int
-  --   go n numLow numHigh
-  --     | n <= 0 = pure $ numLow * numHigh
-  --   go n !numLow !numHigh = do
-  --     (newLow, newHigh) <- pushButton mc
-  --     traceM =<<  gets (latchStates mc)
-  --     go (n - 1) (numLow + newLow) (numHigh + newHigh)
+firstEmissions :: ModuleConfig -> IO ()
+firstEmissions mc@MC{..} = C.runPipe p
+  where
+    p :: C.Pipe i o u IO ()
+    p =
+      C.iterate (+1) (0 :: Int)
+        C..| C.passthrough (C.runStateP (MS S.empty M.empty) (pushButton mc)
+        C..| C.map pDest
+        C..| C.filter (`S.member` conjunctions)
+        C..| C.mapAccum emitUnique S.empty
+        C..| C.concat)
+        C..| C.iterM print
+        C..| C.sinkNull
+    emitUnique :: String -> Set String -> (Set String, Maybe String)
+    emitUnique dest !seen
+      | dest `S.member` seen = (seen, Nothing)
+      | dest `S.notMember` seen = (S.insert dest seen, Just dest)
+    conjunctions :: Set String
+    conjunctions = M.keysSet $ M.filter ((== Conjuction) . mdType) mcModules
 
+-- firstEmissions :: ModuleConfig -> Map String Int
+-- firstEmissions mc = evalState (C.runPipe p) (MS S.empty M.empty)
+--   where
+--     p :: C.Pipe i o u (State ModuleState) Int
+--     p =
+--       C.replicate n0 ()
+--         C..| pushButton mc
+--         C..| (multTypes <$> C.foldMap countTypes)
 
-  -- where
-  --   go !numLow !numHigh = \case
-  --     Nothing ->
-  --       go (numLow + 1) numHigh (Just ((,Low) <$> mcBroadcast))
-  --     Just Seq.Empty -> pure (numLow, numHigh)
-  --     Just ((dest, pulseType) Seq.:<| queue) -> do
-  --       queue' <- stepPulse mc dest pulseType
-  --       let (numLow', numHigh') = case pulseType of
-  --             Low -> (numLow + 1, numHigh)
-  --             High -> (numLow, numHigh + 1)
-  --       go numLow' numHigh' (Just (queue <> queue'))
+-- evalState (go n0 0 0) (MS S.empty M.empty)
+-- where
+--   go :: Int -> Int -> Int -> State ModuleState Int
+--   go n numLow numHigh
+--     | n <= 0 = pure $ numLow * numHigh
+--   go n !numLow !numHigh = do
+--     (newLow, newHigh) <- pushButton mc
+--     traceM =<<  gets (latchStates mc)
+--     go (n - 1) (numLow + newLow) (numHigh + newHigh)
 
+-- where
+--   go !numLow !numHigh = \case
+--     Nothing ->
+--       go (numLow + 1) numHigh (Just ((,Low) <$> mcBroadcast))
+--     Just Seq.Empty -> pure (numLow, numHigh)
+--     Just ((dest, pulseType) Seq.:<| queue) -> do
+--       queue' <- stepPulse mc dest pulseType
+--       let (numLow', numHigh') = case pulseType of
+--             Low -> (numLow + 1, numHigh)
+--             High -> (numLow, numHigh + 1)
+--       go numLow' numHigh' (Just (queue <> queue'))
 
 -- stepPulse :: Monad m => ModuleConfig -> Pulse -> StateT ModuleState m (Seq Pulse)
 -- stepPulse MC {..} Pulse{..} = case M.lookup pDest mcModules of

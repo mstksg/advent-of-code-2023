@@ -31,7 +31,7 @@ common common-options
                      , bitvec
                      , bytestring
                      , comonad
-                     , conduino
+                     , conduino >= 0.2.3
                      , constraints
                      , constraints-extras < 0.4
                      , containers
