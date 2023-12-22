@@ -23,10 +23,14 @@
 module AOC.Challenge.Day20
   ( day20a,
     day20b,
-    ModuleType(..),
-    ModuleConfig(..),
+    ModuleType (..),
+    ModuleConfig (..),
     assembleConfig,
-    firstEmissions
+    firstEmissions,
+    conjunctionTree,
+    Tree (..),
+    flatTree,
+    defParens,
   )
 where
 
@@ -35,6 +39,8 @@ import Data.Bitraversable
 import qualified Data.Conduino as C
 import qualified Data.Conduino.Combinators as C
 import qualified Data.Conduino.Lift as C
+import Data.Functor.Foldable.TH (MakeBaseFunctor (makeBaseFunctor))
+import Data.Functor.Foldable
 import Data.Generics.Labels ()
 import qualified Data.Graph.Inductive as G
 import qualified Data.IntMap as IM
@@ -81,7 +87,7 @@ data PulseType = Low | High
   deriving stock (Show, Eq, Ord, Generic)
   deriving anyclass (NFData)
 
-data Pulse = Pulse {pDest :: !String, pType :: !PulseType}
+data Pulse = Pulse {pOrigin :: !(Maybe String), pDest :: !String, pType :: !PulseType}
   deriving stock (Show, Eq, Ord, Generic)
   deriving anyclass (NFData)
 
@@ -108,6 +114,7 @@ assembleConfig ms = do
         mcModules =
           M.intersectionWith (\(f, t) b -> MD f b t) forwards bckwrds
             <> ((\(f, t) -> MD f S.empty t) <$> M.difference forwards bckwrds)
+            <> ((\b -> MD Seq.empty b Conjuction) <$> M.difference bckwrds forwards)
       }
   where
     T2 broadcast forwards =
@@ -151,7 +158,7 @@ stepPulse MC {..} = C.awaitForever \Pulse {..} -> case M.lookup pDest mcModules 
             (case p of Low -> S.difference; High -> S.union)
             s
             updates
-        for_ mdForward \q -> C.yield $ Pulse q p
+        for_ mdForward \q -> C.yield $ Pulse (Just pDest) q p
       Nothing -> pure ()
 
 pushButton :: (MonadState ModuleState m) => ModuleConfig -> C.Pipe i Pulse () m ()
@@ -161,13 +168,13 @@ pushButton mc@MC {..} =
       C..| stepPulse mc
   where
     button = \case
-      Left _ -> (`Pulse` Low) <$> toList mcBroadcast
+      Left _ -> (\x -> Pulse Nothing x Low) <$> toList mcBroadcast
       Right x -> [x]
 
 runModules :: Int -> ModuleConfig -> Int
 runModules n0 mc@MC {..} = C.runPipePure p
   where
-    p :: Monad m => C.Pipe i o u m Int
+    p :: (Monad m) => C.Pipe i o u m Int
     p =
       C.replicate n0 ()
         C..| C.runStateP (MS S.empty M.empty) (pushButton mc)
@@ -179,25 +186,136 @@ runModules n0 mc@MC {..} = C.runPipePure p
     multTypes :: STup.T2 (Sum Int) (Sum Int) -> Int
     multTypes (STup.T2 (Sum x) (Sum y)) = (x + n0 * (1 + Seq.length mcBroadcast)) * y
 
+data Tree k = TNode k [Tree k]
+  deriving stock (Functor, Eq, Ord, Show)
+
+makeBaseFunctor ''Tree
+
+conjunctionTree :: ModuleConfig -> String -> TreeF String String
+conjunctionTree MC {..} = go
+  where
+    go k = TNodeF k case M.lookup k mcModules of
+      Nothing -> []
+      Just md -> case mdType md of
+        FlipFlop -> []
+        Conjuction -> filter (\b -> mdType (mcModules M.! b) == Conjuction) . toList $ mdBackward md
+
+defParens :: [(Char, Char)]
+defParens = cycle [('(', ')'), ('{', '}'), ('[', ']')]
+
+flatTree :: (a -> Char) -> TreeF a ([(Char, Char)] -> String -> String) -> [(Char, Char)] -> String -> String
+flatTree f = go
+  where
+    go (TNodeF x xs) ((a, b) : ps) = (f x :) . childs
+      where
+        childs
+          | null xs = id
+          | otherwise = (a :) . foldr (.) id (map ($ ps) xs) . (b :)
+
+-- f x <> b <> concatMap ($ bs) xs
+-- (f x <>) . foldr (.) id xs
+-- f x <> sep <>
+
 firstEmissions :: ModuleConfig -> IO ()
-firstEmissions mc@MC{..} = C.runPipe p
+firstEmissions mc@MC {..} = C.runPipe p
   where
     p :: C.Pipe i o u IO ()
     p =
-      C.iterate (+1) (0 :: Int)
-        C..| C.passthrough (C.runStateP (MS S.empty M.empty) (pushButton mc)
-        C..| C.map pDest
-        C..| C.filter (`S.member` conjunctions)
-        C..| C.mapAccum emitUnique S.empty
-        C..| C.concat)
-        C..| C.iterM print
-        C..| C.sinkNull
-    emitUnique :: String -> Set String -> (Set String, Maybe String)
-    emitUnique dest !seen
-      | dest `S.member` seen = (seen, Nothing)
-      | dest `S.notMember` seen = (S.insert dest seen, Just dest)
+      C.evalStateP (MS S.empty M.empty) $
+        C.iterate (+ 1) (0 :: Int)
+          C..| C.passthrough
+            ( pushButton mc
+                C..| C.filter (any (`S.member` conjunctions) . pOrigin)
+                C..| C.mapM displayMap
+                C..| C.mapAccum changes Nothing
+                C..| C.concat
+                -- C..| C.mapAccum flips M.empty
+                -- C..| C.concat
+            )
+          C..| C.iterM (\(Just i, str) -> liftIO $ printf "% 9d: %s\n" i str)
+          -- C..| C.iterM (liftIO . putStrLn <=< display)
+          C..| C.sinkNull
+    displayMap Pulse{..} = do
+      conjState <- use #msConjunctions
+      pure $ cata
+              ( flatTree
+                  ( \n ->
+                      let allHighs = M.findWithDefault S.empty n conjState
+                          isAllOn = allHighs == mdBackward (mcModules M.! n)
+                          isNew = False
+                          -- isNew = Just n == pOrigin
+                       in case (isAllOn, isNew) of
+                            (True, True) -> '▓'
+                            (True, False) -> '▒'
+                            (False, True) -> '.'
+                            (False, False) -> ' '
+                  )
+              )
+              cTree
+              defParens
+              ""
+    -- display (Just i, Pulse {..}) = do
+    --   conjState <- use #msConjunctions
+    --   let outMap =
+    --         cata
+    --           ( flatTree
+    --               ( \n ->
+    --                   let allHighs = M.findWithDefault S.empty n conjState
+    --                       isAllOn = allHighs == mdBackward (mcModules M.! n)
+    --                       isNew = Just n == pOrigin
+    --                    in case (isAllOn, isNew) of
+    --                         (True, True) -> '▓'
+    --                         (True, False) -> '▒'
+    --                         (False, True) -> '.'
+    --                         (False, False) -> ' '
+    --               )
+    --           )
+    --           cTree
+    --           defParens
+    --           ""
+    --   pure $ printf "% 9d: %s" i outMap
+
+    -- -- let outMap = flip M.fromSet conjunctions \n ->
+    -- --       let allHighs = M.findWithDefault S.empty n conjState
+    -- --           isAllOn = allHighs == mdBackward (mcModules M.! n)
+    -- --           isNew = Just n == pOrigin
+    -- --        in case (isAllOn, isNew) of
+    -- --             (True, True) -> '▓'
+    -- --             (True, False) -> '▒'
+    -- --             (False, True) -> '.'
+    -- --             (False, False) -> ' '
+    -- -- pure $ printf "% 7d: %s (%s)" i (M.elems outMap) (concat pOrigin)
+    -- display _ = undefined
+    -- uses #msConjunctions $ _
+    -- printf "%d: %s %s (%s)" i (show pType) pDest (show $ mdBackward $ mcModules M.! pDest)
+    -- display (Just i, Pulse{..}) = printf "%d: %s %s (%s)" i (show pType) pDest (show $ mdBackward $ mcModules M.! pDest)
+    -- emitUnique :: String -> Set String -> (Set String, Maybe String)
+    -- emitUnique dest !seen
+    --   | dest `S.notMember` seen = (S.insert dest seen, Just dest)
+    --   | otherwise = (seen, Nothing)
+    cTree :: Tree String
+    cTree = ana (conjunctionTree mc) "rx"
     conjunctions :: Set String
     conjunctions = M.keysSet $ M.filter ((== Conjuction) . mdType) mcModules
+    flips :: Pulse -> Map (Maybe String) PulseType -> (Map (Maybe String) PulseType, Maybe Pulse)
+    flips pulse@Pulse {..} hist = case M.lookup pOrigin hist of
+      Nothing -> (M.insert pOrigin pType hist, Just pulse)
+      Just oldType
+        | oldType == pType -> (hist, Nothing)
+        | otherwise -> (M.insert pOrigin pType hist, Just pulse)
+    changes a = \case
+      Nothing -> (Just a, Just a)
+      Just b
+        | a == b -> (Just b, Nothing)
+        | otherwise -> (Just a, Just a)
+
+
+-- fromMaybe (hist, Nothing) do
+-- case M.lookup pDest hist of
+
+-- lowConj :: Pulse -> Maybe String
+-- lowConj Pulse{..} = case pType of
+--   Low ->
 
 -- firstEmissions :: ModuleConfig -> Map String Int
 -- firstEmissions mc = evalState (C.runPipe p) (MS S.empty M.empty)
