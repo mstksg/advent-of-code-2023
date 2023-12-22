@@ -1,6 +1,6 @@
-{-# OPTIONS_GHC -Wno-unused-imports   #-}
-{-# OPTIONS_GHC -Wno-unused-top-binds #-}
 {-# LANGUAGE DeriveAnyClass #-}
+{-# OPTIONS_GHC -Wno-unused-imports #-}
+{-# OPTIONS_GHC -Wno-unused-top-binds #-}
 
 -- |
 -- Module      : AOC.Challenge.Day22
@@ -21,48 +21,48 @@
 --     types @_ :~> _@ with the actual types of inputs and outputs of the
 --     solution.  You can delete the type signatures completely and GHC
 --     will recommend what should go in place of the underscores.
+module AOC.Challenge.Day22
+  ( day22a,
+    day22b,
+  )
+where
 
-module AOC.Challenge.Day22 (
-    day22a
-  , day22b
-  ) where
-
-import           AOC.Prelude
-
-import qualified Data.Graph.Inductive           as G
-import qualified Data.IntMap                    as IM
-import qualified Data.IntSet                    as IS
-import qualified Data.List.NonEmpty             as NE
-import qualified Data.List.PointedList          as PL
+import AOC.Prelude
+import qualified Data.Graph.Inductive as G
+import qualified Data.IntMap as IM
+import qualified Data.IntSet as IS
+import qualified Data.List.NonEmpty as NE
+import qualified Data.List.PointedList as PL
 import qualified Data.List.PointedList.Circular as PLC
-import qualified Data.Map                       as M
-import qualified Data.OrdPSQ                    as PSQ
-import qualified Data.Sequence                  as Seq
-import qualified Data.Set                       as S
-import qualified Data.Text                      as T
-import qualified Data.Vector                    as V
-import qualified Linear                         as L
-import qualified Text.Megaparsec                as P
-import qualified Text.Megaparsec.Char           as P
-import qualified Text.Megaparsec.Char.Lexer     as PP
+import qualified Data.Map as M
+import qualified Data.OrdPSQ as PSQ
+import qualified Data.Sequence as Seq
+import qualified Data.Set as S
+import qualified Data.Text as T
+import qualified Data.Vector as V
+import Data.Generics.Labels ()
+import qualified Linear as L
+import qualified Text.Megaparsec as P
+import qualified Text.Megaparsec.Char as P
+import qualified Text.Megaparsec.Char.Lexer as PP
 
 type Point3 = V3 Int
 
 data Axis = X | Y | Z
   deriving stock (Show, Eq, Ord, Generic)
-  deriving anyclass NFData
+  deriving anyclass (NFData)
 
 data Block = Block
-    { bAxis :: Axis
-    , bStart :: Point3
-    , bSize :: Int
-    }
+  { bAxis :: Axis,
+    bStart :: Point3,
+    bExtent :: Int
+  }
   deriving stock (Show, Eq, Ord, Generic)
-  deriving anyclass NFData
+  deriving anyclass (NFData)
 
 classifyBlock :: V2 Point3 -> Maybe Block
 classifyBlock (V2 p0@(V3 x y z) p1@(V3 x' y' z')) = case liftA2 compare p0 p1 of
-  V3 EQ EQ EQ -> Just $ Block X p0 0
+  V3 EQ EQ EQ -> Just $ Block Z p0 0
   V3 LT EQ EQ -> Just $ Block X p0 (x' - x)
   V3 GT EQ EQ -> Just $ Block X p1 (x - x')
   V3 EQ LT EQ -> Just $ Block Y p0 (y' - y)
@@ -75,64 +75,93 @@ minZ :: Block -> Int
 minZ = view _z . bStart
 
 maxZ :: Block -> Int
-maxZ Block{..} = case bAxis of
-    X -> view _z bStart
-    Y -> view _z bStart
-    Z -> view _z bStart + bSize
+maxZ Block {..} = case bAxis of
+  X -> view _z bStart
+  Y -> view _z bStart
+  Z -> view _z bStart + bExtent
 
 footprint :: Block -> Set Point
-footprint Block{..} = case bAxis of
-    X -> S.fromAscList [ view _xy bStart + V2 dx 0 | dx <- [0..bSize] ]
-    Y -> S.fromAscList [ view _xy bStart + V2 0 dy | dy <- [0..bSize] ]
-    Z -> S.singleton (view _xy bStart)
+footprint Block {..} = case bAxis of
+  X -> S.fromList [view _xy bStart + V2 dx 0 | dx <- [0 .. bExtent]]
+  Y -> S.fromList [view _xy bStart + V2 0 dy | dy <- [0 .. bExtent]]
+  Z -> S.singleton (view _xy bStart)
 
--- | Blocks indixed by max X
-type AirColumn = Map Int [Block]
+-- -- | Blocks indexed by max Z
+-- type AirColumn = Map Int [Block]
 
-dropBrick :: AirColumn -> Block -> Block
-dropBrick ac b@Block{..} = _
+-- dropBrick :: AirColumn -> Block -> Block
+-- dropBrick ac b = set (#bStart . _z) (firstStop + 1) b
+--   where
+--     contenders :: AirColumn
+--     contenders = M.takeWhileAntitone (< minZ b) ac
+--     firstStop :: Int
+--     firstStop = fromMaybe 0 . flip firstJust (M.toDescList contenders) $ \(z, bs) ->
+--       z <$ guard (not (all (null . S.intersection (footprint b) . footprint) bs))
+
+dropBrick :: Foldable t => t Block -> Block -> Block
+dropBrick bs b = set (#bStart . _z) (firstStop + 1) b
   where
-    contenders = M.takeWhileAntitone (< minZ b) ac
-    firstStop = M.dropWhileAntitone _ contenders
+    -- tracer x
+    --   | x /= b = trace (show b <> " -> " <> show x) x
+    --   | otherwise = x
+    firstStop :: Int
+    firstStop = maybe 0 getMax $ foldMap (fmap Max . stoppable) bs
+    stoppable :: Block -> Maybe Int
+    stoppable c = maxZ c <$ guard
+        (maxZ c < minZ b && not (null (S.intersection (footprint b) (footprint c))))
+
+dropAllOnce :: Seq Block -> Seq Block
+dropAllOnce xs = strictIterate dropAndSwap xs !! Seq.length xs
+  where
+    dropAndSwap = \case
+      Seq.Empty -> Seq.Empty
+      y :<| ys -> ys :|> dropBrick ys y
+
 --   -- case bAxis of
 --   --   X -> _
 --   --   Y -> _
 --   --   Z -> _
 
-dropBrick :: Seq (Set (V3 Int)) -> Seq (Set (V3 Int))
-dropBrick Seq.Empty = Seq.Empty
-dropBrick (x Seq.:<| xs) = xs Seq.:|> x'
-  where
-    taken = fold xs
-    valid q = all ((> 0) . view _z) q
-      && S.null (q `S.intersection` taken)
-    x' = last . takeWhile valid $ iterate (S.map (over _z (subtract 1))) x
+-- dropBrick :: Seq (Set (V3 Int)) -> Seq (Set (V3 Int))
+-- dropBrick Seq.Empty = Seq.Empty
+-- dropBrick (x Seq.:<| xs) = xs Seq.:|> x'
+--   where
+--     taken = fold xs
+--     valid q = all ((> 0) . view _z) q
+--       && S.null (q `S.intersection` taken)
+--     x' = last . takeWhile valid $ iterate (S.map (over _z (subtract 1))) x
 
-    -- dropped = S.map (over _z (subtract 1)) x
-    -- x' | S.null (dropped `S.intersection` taken) && all ((> 0) . view _z) dropped = dropped
-    --    | otherwise = x
+--     -- dropped = S.map (over _z (subtract 1)) x
+--     -- x' | S.null (dropped `S.intersection` taken) && all ((> 0) . view _z) dropped = dropped
+--     --    | otherwise = x
 
-dropAllOnce :: Seq (Set (V3 Int)) -> Seq (Set (V3 Int))
-dropAllOnce xs = strictIterate dropBrick xs !! Seq.length xs
+-- dropAllOnce :: Seq (Set (V3 Int)) -> Seq (Set (V3 Int))
+-- dropAllOnce xs = strictIterate dropBrick xs !! Seq.length xs
 
 -- firstRepeated :: Ord a => [a] -> Maybe a
 -- firstRepeated = firstRepeatedBy id
 
 day22a :: [V2 (V3 Int)] :~> _
-day22a = MkSol
+day22a =
+  MkSol
     { sParse =
-          traverse (traverse (traverse readMaybe <=< listV3 . splitOn ",") <=< listV2 . splitOn "~") .lines
-    , sShow  = show
-    , sSolve = \xs ->
-        traverse classifyBlock xs
-      -- let bricks = Seq.fromList $ flip map xs \(V2 a b) -> S.fromList $ sequence $ liftA2 enumFromTo a b
-      --  in firstRepeated $ strictIterate dropAllOnce bricks
+        traverse (traverse (traverse readMaybe <=< listV3 . splitOn ",") <=< listV2 . splitOn "~") . lines,
+      -- sShow = show,
+      sShow = ('\n':) . unlines . map show . toList,
+      sSolve = \xs -> do
+        bs <- Seq.fromList <$> traverse classifyBlock xs
+        -- pure . take 3 $ iterate dropAllOnce bs
+        pure $ fixedPoint dropAllOnce bs
+        -- let bricks = Seq.fromList $ flip map xs \(V2 a b) -> S.fromList $ sequence $ liftA2 enumFromTo a b
+        --  in firstRepeated $ strictIterate dropAllOnce bricks
     }
 
 day22b :: _ :~> _
-day22b = MkSol
-    { sParse = sParse day22a
-    , sShow  = show
-    , sSolve = noFail $
+day22b =
+  MkSol
+    { sParse = sParse day22a,
+      sShow = show,
+      sSolve =
+        noFail $
           id
     }
