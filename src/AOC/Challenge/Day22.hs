@@ -1,5 +1,6 @@
 {-# OPTIONS_GHC -Wno-unused-imports   #-}
 {-# OPTIONS_GHC -Wno-unused-top-binds #-}
+{-# LANGUAGE DeriveAnyClass #-}
 
 -- |
 -- Module      : AOC.Challenge.Day22
@@ -47,14 +48,69 @@ import qualified Text.Megaparsec.Char.Lexer     as PP
 
 type Point3 = V3 Int
 
+data Axis = X | Y | Z
+  deriving stock (Show, Eq, Ord, Generic)
+  deriving anyclass NFData
+
+data Block = Block
+    { bAxis :: Axis
+    , bStart :: Point3
+    , bSize :: Int
+    }
+  deriving stock (Show, Eq, Ord, Generic)
+  deriving anyclass NFData
+
+classifyBlock :: V2 Point3 -> Maybe Block
+classifyBlock (V2 p0@(V3 x y z) p1@(V3 x' y' z')) = case liftA2 compare p0 p1 of
+  V3 EQ EQ EQ -> Just $ Block X p0 0
+  V3 LT EQ EQ -> Just $ Block X p0 (x' - x)
+  V3 GT EQ EQ -> Just $ Block X p1 (x - x')
+  V3 EQ LT EQ -> Just $ Block Y p0 (y' - y)
+  V3 EQ GT EQ -> Just $ Block Y p1 (y - y')
+  V3 EQ EQ LT -> Just $ Block Z p0 (z' - z)
+  V3 EQ EQ GT -> Just $ Block Z p1 (z' - z)
+  _ -> Nothing
+
+minZ :: Block -> Int
+minZ = view _z . bStart
+
+maxZ :: Block -> Int
+maxZ Block{..} = case bAxis of
+    X -> view _z bStart
+    Y -> view _z bStart
+    Z -> view _z bStart + bSize
+
+footprint :: Block -> Set Point
+footprint Block{..} = case bAxis of
+    X -> S.fromAscList [ view _xy bStart + V2 dx 0 | dx <- [0..bSize] ]
+    Y -> S.fromAscList [ view _xy bStart + V2 0 dy | dy <- [0..bSize] ]
+    Z -> S.singleton (view _xy bStart)
+
+-- | Blocks indixed by max X
+type AirColumn = Map Int [Block]
+
+dropBrick :: AirColumn -> Block -> Block
+dropBrick ac b@Block{..} = _
+  where
+    contenders = M.takeWhileAntitone (< minZ b) ac
+    firstStop = M.dropWhileAntitone _ contenders
+--   -- case bAxis of
+--   --   X -> _
+--   --   Y -> _
+--   --   Z -> _
+
 dropBrick :: Seq (Set (V3 Int)) -> Seq (Set (V3 Int))
 dropBrick Seq.Empty = Seq.Empty
 dropBrick (x Seq.:<| xs) = xs Seq.:|> x'
   where
     taken = fold xs
-    dropped = S.map (over _z (subtract 1)) x
-    x' | S.null (dropped `S.intersection` taken) && all ((> 0) . view _z) dropped = dropped
-       | otherwise = x
+    valid q = all ((> 0) . view _z) q
+      && S.null (q `S.intersection` taken)
+    x' = last . takeWhile valid $ iterate (S.map (over _z (subtract 1))) x
+
+    -- dropped = S.map (over _z (subtract 1)) x
+    -- x' | S.null (dropped `S.intersection` taken) && all ((> 0) . view _z) dropped = dropped
+    --    | otherwise = x
 
 dropAllOnce :: Seq (Set (V3 Int)) -> Seq (Set (V3 Int))
 dropAllOnce xs = strictIterate dropBrick xs !! Seq.length xs
@@ -62,14 +118,15 @@ dropAllOnce xs = strictIterate dropBrick xs !! Seq.length xs
 -- firstRepeated :: Ord a => [a] -> Maybe a
 -- firstRepeated = firstRepeatedBy id
 
-day22a :: [(V2 (V3 Int))] :~> _
+day22a :: [V2 (V3 Int)] :~> _
 day22a = MkSol
-    { sParse = 
+    { sParse =
           traverse (traverse (traverse readMaybe <=< listV3 . splitOn ",") <=< listV2 . splitOn "~") .lines
     , sShow  = show
     , sSolve = \xs ->
-      let bricks = Seq.fromList $ flip map xs \(V2 a b) -> S.fromList $ sequence $ liftA2 enumFromTo a b
-       in firstRepeated $ strictIterate dropAllOnce bricks
+        traverse classifyBlock xs
+      -- let bricks = Seq.fromList $ flip map xs \(V2 a b) -> S.fromList $ sequence $ liftA2 enumFromTo a b
+      --  in firstRepeated $ strictIterate dropAllOnce bricks
     }
 
 day22b :: _ :~> _
