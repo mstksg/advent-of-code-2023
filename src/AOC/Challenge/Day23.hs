@@ -137,20 +137,44 @@ data HikeState2 = HS2 {hs2Seen :: Set Point, hs2Curr :: Point, hs2Length :: Int}
   deriving stock (Eq, Ord, Show, Generic)
   deriving anyclass (NFData)
 
-paths2 :: Map Point (NEMap Point Int) -> Int
-paths2 gr = go 0 (Seq.singleton st0)
+-- paths2 :: Map Point (NEMap Point Int) -> Int
+-- paths2 gr = go 0 (Seq.singleton st0)
+--   where
+--     st0 = HS2 S.empty (V2 1 0) 0
+--     goal = maximumBy (comparing $ view _y) (M.keys gr)
+--     go !best = \case
+--       Seq.Empty -> best
+--       HS2{..} Seq.:<| xs
+--         | hs2Curr == goal -> go (max best hs2Length) xs
+--         | otherwise ->
+--             let nexts = flip mapMaybe (toList (NEM.toList (gr M.! hs2Curr))) \(p, d) -> do
+--                   guard $ p `S.notMember` hs2Seen
+--                   pure $ HS2 (S.insert p hs2Seen) p (hs2Length + d)
+--             in  go best (xs <> Seq.fromList nexts)
+
+paths2 :: Map Point (NEMap Point Int) -> Map HikeState [HikeState]
+paths2 gr = go M.empty (M.singleton st0 [])
   where
-    st0 = HS2 S.empty (V2 1 0) 0
+    st0 = HS S.empty (V2 1 0)
     goal = maximumBy (comparing $ view _y) (M.keys gr)
-    go !best = \case
-      Seq.Empty -> best
-      HS2{..} Seq.:<| xs
-        | hs2Curr == goal -> go (max best hs2Length) xs
-        | otherwise ->
-            let nexts = flip mapMaybe (toList (NEM.toList (gr M.! hs2Curr))) \(p, d) -> do
-                  guard $ p `S.notMember` hs2Seen
-                  pure $ HS2 (S.insert p hs2Seen) p (hs2Length + d)
-            in  go best (xs <> Seq.fromList nexts)
+    go res queue = case M.minViewWithKey queue of
+      Nothing -> res
+      Just ((x@HS{..},hist), xs)
+        | hsCurr == goal -> go (M.insertWith biggerSize x hist res) queue
+        | otherwise -> _
+    biggerSize x y = x
+
+    -- \case
+    --   Seq.Empty -> []
+    --   HS2{..} Seq.:<| xs
+    --     | hs2Curr == goal -> go (max best hs2Length) xs
+    --     | otherwise ->
+    --         let nexts = flip mapMaybe (toList (NEM.toList (gr M.! hs2Curr))) \(p, d) -> do
+    --               guard $ p `S.notMember` hs2Seen
+    --               pure $ HS2 (S.insert p hs2Seen) p (hs2Length + d)
+    --         in  go best (xs <> Seq.fromList nexts)
+
+
 -- pathGraph :: Set Point -> Map Point (NEMap Point Int)
 
 -- pathGraph :: Set Point -> Map Point (NESet Point)
