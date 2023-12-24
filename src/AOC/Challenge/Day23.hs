@@ -35,8 +35,8 @@ import qualified Data.IntSet as IS
 import qualified Data.List.NonEmpty as NE
 import qualified Data.List.PointedList as PL
 import qualified Data.List.PointedList.Circular as PLC
-import qualified Data.Map.NonEmpty as NEM
 import qualified Data.Map as M
+import qualified Data.Map.NonEmpty as NEM
 import qualified Data.OrdPSQ as PSQ
 import qualified Data.Sequence as Seq
 import qualified Data.Set as S
@@ -99,38 +99,23 @@ paths' mp = go S.empty s0
               (xs <> Seq.fromList (filter (`S.notMember` seen) $ expandState mp x))
 
 pathGraph :: Set Point -> Map Point (NEMap Point Int)
-pathGraph ps = go S.empty M.empty (Seq.singleton (V2 1 0))
+pathGraph ps =
+  M.mapMaybe NEM.nonEmptyMap
+    . M.mapWithKey (\p -> M.fromList . mapMaybe (follow 1 p) . S.toList)
+    $ saturated
   where
-    go !seen !res = \case
-      Seq.Empty -> res
-      x Seq.:<| xs ->
-        let followOut path p q
-              | q `S.member` seen = Nothing
-              | otherwise = case M.lookup q skinny of
-                Just (a,b)
-                  | p == a -> followOut (S.insert p path) q b
-                  | otherwise -> followOut (S.insert p path) q a
-                Nothing -> Just (q, S.insert p path)
-         in  case M.lookup x saturated of
-               Nothing -> error "hm.."
-               Just ns ->
-                 case M.fromList $ mapMaybe (followOut S.empty x) (toList ns) of
-                   NEM.IsEmpty -> go (S.insert x seen) res xs
-                   NEM.IsNonEmpty mp ->
-                     let allSeen = NEM.foldMapWithKey S.insert mp
-                         toInsert = S.size <$> mp
-                         backLinks = fmap (NEM.singleton x)
-                                   . NEM.toMap
-                                   $ toInsert
-                         newRes = M.insertWith (<>) x toInsert backLinks
-                      in go (seen <> allSeen)
-                            (M.unionWith (<>) newRes res)
-                            (xs <> Seq.fromList (toList (NEM.keys mp)))
+    follow !n a b
+      | b `M.member` saturated = Just (b, n)
+      | otherwise =
+          M.lookup b skinny >>= \(p, q) ->
+            if a == p
+              then follow (n+1) b q
+              else follow (n+1) b p
     neighbGraph = flip M.fromSet ps $ \p ->
       cardinalNeighbsSet p `S.intersection` ps
     (skinny, saturated) = flip M.mapEither neighbGraph $ \qs ->
       case toList qs of
-        [a,b] -> Left (a,b)
+        [a, b] -> Left (a, b)
         _ -> Right qs
 
 data HikeState2 = HS2 {hs2Seen :: Set Point, hs2Curr :: Point, hs2Length :: Int}
@@ -152,28 +137,38 @@ data HikeState2 = HS2 {hs2Seen :: Set Point, hs2Curr :: Point, hs2Length :: Int}
 --                   pure $ HS2 (S.insert p hs2Seen) p (hs2Length + d)
 --             in  go best (xs <> Seq.fromList nexts)
 
-paths2 :: Map Point (NEMap Point Int) -> Map HikeState [HikeState]
-paths2 gr = go M.empty (M.singleton st0 [])
+-- data BFSState n = BS { _bsClosed  :: !(Map n (Maybe n))  -- ^ map of item to "parent"
+--                      , _bsOpen    :: !(Seq n) -- ^ queue
+--                      }
+
+-- | map state with the longest path to get to that state. but actually i
+-- wonder if transpositions/re-orderings are unique.
+paths2 :: Map Point (NEMap Point Int) -> Set HikeState2
+paths2 gr = go S.empty S.empty (Seq.singleton st0)
   where
-    st0 = HS S.empty (V2 1 0)
+    st0 = HS2 S.empty (V2 1 0) 0
     goal = maximumBy (comparing $ view _y) (M.keys gr)
-    go res queue = case M.minViewWithKey queue of
-      Nothing -> res
-      Just ((x@HS{..},hist), xs)
-        | hsCurr == goal -> go (M.insertWith biggerSize x hist res) queue
-        | otherwise -> _
-    biggerSize x y = x
+    go seen res = \case
+      Seq.Empty -> res
+      s@HS2 {..} Seq.:<| xs
+        | hs2Curr == goal -> go (S.insert s seen) (S.insert s res) xs
+        | otherwise ->
+            let nexts = flip mapMaybe (toList (NEM.toList (gr M.! hs2Curr))) \(p, d) -> do
+                  guard $ p `S.notMember` hs2Seen
+                  let s' = HS2 (S.insert p hs2Seen) p (hs2Length + d)
+                  guard $ s' `S.notMember` seen
+                  pure s'
+                seen' = seen <> S.fromList nexts
+             in go seen' res (xs <> Seq.fromList nexts)
 
-    -- \case
-    --   Seq.Empty -> []
-    --   HS2{..} Seq.:<| xs
-    --     | hs2Curr == goal -> go (max best hs2Length) xs
-    --     | otherwise ->
-    --         let nexts = flip mapMaybe (toList (NEM.toList (gr M.! hs2Curr))) \(p, d) -> do
-    --               guard $ p `S.notMember` hs2Seen
-    --               pure $ HS2 (S.insert p hs2Seen) p (hs2Length + d)
-    --         in  go best (xs <> Seq.fromList nexts)
+-- case M.minViewWithKey queue of
+-- Nothing -> res
+-- Just ((x@HS{..},hist), xs)
+--   | hsCurr == goal -> go (M.insertWith biggerSize x hist res) queue
+--   | otherwise -> _
+-- biggerSize x y = x
 
+-- \case
 
 -- pathGraph :: Set Point -> Map Point (NEMap Point Int)
 
@@ -224,10 +219,11 @@ day23b :: _ :~> _
 day23b =
   MkSol
     { sParse = sParse day23a,
+      -- sShow = ('\n' :) . unlines . map show . M.toList,
       sShow = show,
       sSolve =
         noFail $
-          paths2 . pathGraph . M.keysSet
+          maximum . map hs2Length . S.toList . paths2 . pathGraph . M.keysSet
           -- reduceGraph . pathGraph . M.keysSet
           -- maximum . map (subtract 1 . S.size . hsSeen) . paths' . fmap (const Nothing)
     }
