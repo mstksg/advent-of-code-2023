@@ -50,16 +50,16 @@ type Point3 = V3 Int
 
 collision ::
   forall f.
-  (Show (f (Maybe Rational)), Show (f Int), Num (f Int), Applicative f, Num (f Rational), Foldable f) =>
-  V2 (f Int) ->
-  V2 (f Int) ->
+  (Applicative f, Num (f Rational), Foldable f) =>
+  V2 (f Rational) ->
+  V2 (f Rational) ->
   Maybe (f Rational)
-collision p1@(V2 r1 v1) p2@(V2 r2 v2) = traceShow (p1, p2) do
+collision (V2 r1 v1) (V2 r2 v2) = do
   Just t' <- allSame t
-  pure $ (fromIntegral <$> r1) + t' *^ (fromIntegral <$> v1)
+  pure $ r1 + t' *^ v1
   where
     t :: f (Maybe Rational)
-    t = traceShowId $ liftA2 maybeDivide (r2 - r1) (v2 - v1)
+    t = liftA2 maybeDivide (r2 - r1) (v2 - v1)
 
 -- r_1 + t v_1 = r_2 + t v_2
 -- t (v1 - v2) = r2 - r1
@@ -109,10 +109,10 @@ collision p1@(V2 r1 v1) p2@(V2 r2 v2) = traceShow (p1, p2) do
 --          t2 = ((r2y - r1y)/v1y - (r2x - r1x)/v2x)
 --                  / (v2x/v1x - v2y/v1y)
 --
---       t1 = (r2x - r1x)/v1x + v2x/v1x t2 
+--       t1 = (r2x - r1x)/v1x + v2x/v1x t2
 
-intersect2d :: V2 Point -> V2 Point -> Maybe (V2 Rational)
-intersect2d p1@(V2 (V2 rx1 ry1) (V2 vx1 vy1)) p2@(V2 (V2 rx2 ry2) (V2 vx2 vy2)) = traceShow (p1,p2) . traceShowId $ do
+intersect2d :: (Fractional a, Ord a) => V2 (V2 a) -> V2 (V2 a) -> Maybe (V2 a)
+intersect2d (V2 (V2 rx1 ry1) (V2 vx1 vy1)) (V2 (V2 rx2 ry2) (V2 vx2 vy2)) = do
   a <- maybeDivide (ry2 - ry1) vy1
   b <- maybeDivide (rx2 - rx1) vx1
   c <- maybeDivide vx2 vx1
@@ -122,12 +122,12 @@ intersect2d p1@(V2 (V2 rx1 ry1) (V2 vx1 vy1)) p2@(V2 (V2 rx2 ry2) (V2 vx2 vy2)) 
       t1 = b + t2 * c
   guard $ t2 > 0
   guard $ t1 > 0
-  pure $ V2 (fromIntegral rx2 + t2 * fromIntegral vx2) (fromIntegral ry2 + t2 * fromIntegral vy2)
+  pure $ V2 (rx2 + t2 * vx2) (ry2 + t2 * vy2)
 
-maybeDivide :: Int -> Int -> Maybe Rational
+maybeDivide :: (Fractional a, Eq a) => a -> a -> Maybe a
 maybeDivide x y
   | y == 0 = Nothing
-  | otherwise = Just $ fromIntegral x / fromIntegral y
+  | otherwise = Just $ x / y
 
 allSame :: (Eq a, Foldable f) => f a -> Maybe a
 allSame xs = case toList xs of
@@ -150,16 +150,15 @@ day24a =
       sSolve =
         noFail $ \ps ->
           let inRange =
-                all \q ->
+                all @_ @Rational \q ->
                   q >= fromIntegral @Int (dyno_ "mn" 200000000000000)
                     && q <= fromIntegral @Int (dyno_ "mx" 400000000000000)
            in countTrue inRange $
-                traceShowId
-                  [ p
-                    | x : ys <- fmap (fmap (view _xy)) <$> tails ps,
-                      y <- ys,
-                      p <- maybeToList $ intersect2d x y
-                  ]
+                [ p
+                  | x : ys <- fmap (fmap (fmap fromIntegral . view _xy)) <$> tails ps,
+                    y <- ys,
+                    p <- maybeToList $ intersect2d x y
+                ]
     }
 
 day24b :: _ :~> _
