@@ -161,6 +161,42 @@ day24a =
                 ]
     }
 
+-- r_1 + t_1 v_1 = r_2 + t_2 v_2
+--
+-- r0 is the unknown, then we have r1, r2, r3 ...
+-- r1 has t1, r2 has t2, r3 has t3, etc.
+-- 
+-- 6+n unknowns, 3*n eqs
+-- r0x + t1 v0x = r1x + t1 v1x
+-- r0y + t1 v0y = r1y + t1 v1y
+-- r0z + t1 v0z = r1z + t1 v1z
+-- r0x + t2 v0x = r2x + t2 v2x
+-- r0y + t2 v0y = r2y + t2 v2y
+-- r0z + t2 v0z = r2z + t2 v2z
+--
+-- oh noooooo it's not linear because we have t1 * v0x, t1*v0y D:
+--
+-- can we linearize it? maybe instead of solving for t1, solve for t1*v0y
+-- no, then we are underdetrmined, with 3+3*n unknowns. well, at least that
+-- gives us a 3d space to search over instead of a 3N-d space.  and the
+-- velocities are kind of small. maybe it's worth it.
+--
+-- wait, what unknowns do we have?
+-- * r0x, r0y, r0z
+-- * for each n: tn, tnvx, tnvy, tnvz
+--
+-- So actually that's 3 + 4*n unknowns, and 3*n eqns.  So yeah we have too
+-- many...we're missing 3+n equations.  not sure if we can eliminate any
+-- degrees of freedom by constraining t > 0.
+--
+-- and we actually only need the positions...does that mean we can get away
+-- with not solving for v0? anyway it's worth a shot...
+--
+-- r0x - t1 v1x + t1vx               = r1x
+-- r0y - t1 v1y + t1vy               = r1y
+-- r0z - t1 v1z + t1vz               = r1z
+-- 
+
 day24b :: _ :~> _
 day24b =
   MkSol
