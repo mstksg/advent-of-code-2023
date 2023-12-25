@@ -195,6 +195,12 @@ day24a =
 -- r0x - t1 v1x + t1vx               = r1x
 -- r0y - t1 v1y + t1vy               = r1y
 -- r0z - t1 v1z + t1vz               = r1z
+--
+-- wait...can we do a trick, shift to the CoM frame?  i'm not sure if the CoM
+-- is itself magical here (ie, the CoM is literally the magic spot?) but maybe
+-- it can make things easier.
+--
+-- actually let's just guess the CoM first. nope that doesn't work.
 -- 
 
 day24b :: _ :~> _
@@ -204,5 +210,7 @@ day24b =
       sShow = show,
       sSolve =
         noFail $
-          id
+          sum . com . map (view _x)
     }
+  where
+    com xs = fmap (`div` length xs ) $ sum xs
