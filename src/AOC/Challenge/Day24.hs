@@ -201,7 +201,46 @@ day24a =
 -- it can make things easier.
 --
 -- actually let's just guess the CoM first. nope that doesn't work.
+--
+-- okay, let's try a more algorithmic approach.  can we do this pair-wise?
+-- ie, for r1 and r2, what are the r0 that will make this work?  and then do
+-- that with r1 and r3, etc...how many could there possibly be?  this way we
+-- don't necessarily need something linear.
 -- 
+-- r0x - t1 v1x + t1 v0x                   = r1x
+-- r0y - t1 v1y + t1 v0y                   = r1y
+-- r0z - t1 v1z + t1 v0z                   = r1z
+-- r0x                   - t2 v2x + t2 v0x = r2x
+-- r0y                   - t2 v2y + t2 v0y = r2y
+-- r0z                   - t2 v2z + t2 v0z = r2z
+--
+-- 8 unknowns: r0x, r0y, r0z, v0x, v0y, v0z, t1, t2
+--
+-- meaning the solution space is simply a plane.  then we just need three
+-- planes to uniquely determine a point!
+--
+-- actually let's continue on normally with systems of equations.
+--
+-- r0x - t1 v1x + t1 v0x                                     = r1x
+-- r0y - t1 v1y + t1 v0y                                     = r1y
+-- r0z - t1 v1z + t1 v0z                                     = r1z
+-- r0x                   - t2 v2x + t2 v0x                   = r2x
+-- r0y                   - t2 v2y + t2 v0y                   = r2y
+-- r0z                   - t2 v2z + t2 v0z                   = r2z
+-- r0x                                     - t3 v3x + t3 v0x = r3x
+-- r0y                                     - t3 v3y + t3 v0y = r3y
+-- r0z                                     - t3 v3z + t3 v0z = r3z
+-- 
+-- 9 unknowns: r0x, r0y, r0z, v0x, v0y, v0z, t1, t2, t3
+--
+-- actually this is better than we thought.  9 unknowns, 9 equations, this
+-- should be exactly enough.  the only issue really is that this is not a
+-- linear system, so it won't be simple to solve, but hey.  worth a shot.
+--
+-- r0x + t1 (v0x - v1x) = r1x
+-- t1 = (r1x - r0x) / (v0x - v1x)
+-- t1 = (r1y - r0y) / (v0y - v1y)
+-- (r1x - r0x) / (v0x - v1x) = (r1y - r0y) / (v0y - v1y)
 
 day24b :: _ :~> _
 day24b =
