@@ -241,6 +241,29 @@ day24a =
 -- t1 = (r1x - r0x) / (v0x - v1x)
 -- t1 = (r1y - r0y) / (v0y - v1y)
 -- (r1x - r0x) / (v0x - v1x) = (r1y - r0y) / (v0y - v1y)
+-- r0x = r1x - (r1y - r0y) * (v0x - v1x) / (v0y - v1y) 
+--
+-- this is kind of annoying, let's see if we can do it systematically, each
+-- row eliminating one new variable.
+-- 
+-- r0x - t1 v1x + t1 v0x                                     = r1x
+-- r0x                   - t2 v2x + t2 v0x                   = r2x
+-- r0x                                     - t3 v3x + t3 v0x = r3x
+-- r0y - t1 v1y + t1 v0y                                     = r1y
+-- r0y                   - t2 v2y + t2 v0y                   = r2y
+-- r0y                                     - t3 v3y + t3 v0y = r3y
+-- r0z - t1 v1z + t1 v0z                                     = r1z
+-- r0z                   - t2 v2z + t2 v0z                   = r2z
+-- r0z                                     - t3 v3z + t3 v0z = r3z
+--
+-- r0x - t1 v1x + t1 v0x                                     = r1x
+--       t1 v1x - t1 v0x - t2 v2x + t2 v0x                   = r2x - r1x
+--       t1 v1x - t1 v0x                   - t3 v3x + t3 v0x = r3x - r1x
+--
+-- yeah we're just not going to be able to get rid of v0x this way.
+--
+-- okay let's try doing the plane-plane intersection method.  pick three
+-- independent planes and find the single point where they all meet.
 
 day24b :: _ :~> _
 day24b =
