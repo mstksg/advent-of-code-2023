@@ -264,6 +264,28 @@ day24a =
 --
 -- okay let's try doing the plane-plane intersection method.  pick three
 -- independent planes and find the single point where they all meet.
+--
+-- actually yeah this probably won't work because i don't think we are dealing
+-- with planes here, since this isn't a linear system.
+--
+-- let's try solving again. wish i brought my notebook.
+-- 
+-- r0x + t1 (v0x - v1x) = r1x
+-- r0x + t2 (v0x - v2x) = r2x
+-- r0x + t3 (v0x - v3x) = r3x
+--
+-- r0x = r1x - t1 v0x + v1 v1x
+-- r1x - t1 v0x + t1 v1x + t2 v0x - t2 v2x = r2x
+-- v0x (t2 - t1) + r1x + t1 v1x - t2 v2x = r2x
+-- v0x = (r2x - r1x - t1 v1x + t2 v2x) / (t2 - t1)
+-- t3 = (r3x - r0x)/(v0x - v3x)
+-- t3 = (r3x - _)/(_ - v3x)   -- ugly lol
+--
+-- but at this point we have t3 purely in terms of t1, t2. we can then repeat
+-- this for x, y, z to get three equations of t3 in terms of t1, t2.  Then we
+-- have three equations involving only t1, t2, t3.  And then we're done.
+--
+-- Wish i still had my mathematica subscription lol.
 
 day24b :: _ :~> _
 day24b =
