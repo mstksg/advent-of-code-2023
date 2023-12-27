@@ -165,7 +165,7 @@ day24a =
 --
 -- r0 is the unknown, then we have r1, r2, r3 ...
 -- r1 has t1, r2 has t2, r3 has t3, etc.
--- 
+--
 -- 6+n unknowns, 3*n eqs
 -- r0x + t1 v0x = r1x + t1 v1x
 -- r0y + t1 v0y = r1y + t1 v1y
@@ -206,7 +206,7 @@ day24a =
 -- ie, for r1 and r2, what are the r0 that will make this work?  and then do
 -- that with r1 and r3, etc...how many could there possibly be?  this way we
 -- don't necessarily need something linear.
--- 
+--
 -- r0x - t1 v1x + t1 v0x                   = r1x
 -- r0y - t1 v1y + t1 v0y                   = r1y
 -- r0z - t1 v1z + t1 v0z                   = r1z
@@ -230,7 +230,7 @@ day24a =
 -- r0x                                     - t3 v3x + t3 v0x = r3x
 -- r0y                                     - t3 v3y + t3 v0y = r3y
 -- r0z                                     - t3 v3z + t3 v0z = r3z
--- 
+--
 -- 9 unknowns: r0x, r0y, r0z, v0x, v0y, v0z, t1, t2, t3
 --
 -- actually this is better than we thought.  9 unknowns, 9 equations, this
@@ -241,11 +241,11 @@ day24a =
 -- t1 = (r1x - r0x) / (v0x - v1x)
 -- t1 = (r1y - r0y) / (v0y - v1y)
 -- (r1x - r0x) / (v0x - v1x) = (r1y - r0y) / (v0y - v1y)
--- r0x = r1x - (r1y - r0y) * (v0x - v1x) / (v0y - v1y) 
+-- r0x = r1x - (r1y - r0y) * (v0x - v1x) / (v0y - v1y)
 --
 -- this is kind of annoying, let's see if we can do it systematically, each
 -- row eliminating one new variable.
--- 
+--
 -- r0x - t1 v1x + t1 v0x                                     = r1x
 -- r0x                   - t2 v2x + t2 v0x                   = r2x
 -- r0x                                     - t3 v3x + t3 v0x = r3x
@@ -269,12 +269,12 @@ day24a =
 -- with planes here, since this isn't a linear system.
 --
 -- let's try solving again. wish i brought my notebook.
--- 
+--
 -- r0x + t1 (v0x - v1x) = r1x
 -- r0x + t2 (v0x - v2x) = r2x
 -- r0x + t3 (v0x - v3x) = r3x
 --
--- r0x = r1x - t1 v0x + v1 v1x
+-- r0x = r1x - t1 v0x + t1 v1x
 -- r1x - t1 v0x + t1 v1x + t2 v0x - t2 v2x = r2x
 -- v0x (t2 - t1) + r1x + t1 v1x - t2 v2x = r2x
 -- v0x = (r2x - r1x - t1 v1x + t2 v2x) / (t2 - t1)
@@ -286,6 +286,19 @@ day24a =
 -- have three equations involving only t1, t2, t3.  And then we're done.
 --
 -- Wish i still had my mathematica subscription lol.
+--
+-- okay let's just bite the bullet and do this.
+--
+--
+-- r0x = r1x - t1 ((r2x - r1x - t1 v1x + t1 v2x)/(t2 - t1)) + t1 v1x
+-- r0x = r1x + t1 (v1x - (r2x - r1x - t1 v1x + t1 v2x)/(t2 - t1))
+--
+-- t3 = (r3x - r1x - t1 (v1x - (r2x - r1x - t1 v1x + t1 v2x)/(t2 - t1))) / ((r2x - r1x - t1 v1x + t2 v2x) / (t2 - t1) - v3x)
+--
+-- yeah this is awful haha.  i should be doing this using pen and paper.
+--
+-- But yeah the final solution should probably be using y's to get t2 = ...
+-- and plugging that in, then using z's to get t1 = ... and plugging that in.
 
 day24b :: _ :~> _
 day24b =
