@@ -223,7 +223,25 @@ day23b =
       sShow = show,
       sSolve =
         noFail $
-          maximum . map hs2Length . S.toList . paths2 . pathGraph . M.keysSet
+          searchSpace . pathGraph . M.keysSet
+          -- maximum . map hs2Length . S.toList . paths2 . pathGraph . M.keysSet
           -- reduceGraph . pathGraph . M.keysSet
           -- maximum . map (subtract 1 . S.size . hsSeen) . paths' . fmap (const Nothing)
     }
+
+searchSpace :: Map Point (NEMap Point Int) -> Int
+searchSpace mp = S.size $ floodFill expander (S.singleton (HS S.empty (V2 1 0)))
+  where
+    expander HS{..} = S.fromList do
+      neighb <- S.toList $ NES.toSet (NEM.keysSet $ mp M.! hsCurr) `S.difference` hsSeen
+      pure $ HS seen' neighb
+      where
+        seen' = S.insert hsCurr hsSeen
+
+
+-- floodFill
+--     :: Ord a
+--     => (a -> Set a)     -- ^ Expansion (be sure to limit allowed points)
+--     -> Set a            -- ^ Start points
+--     -> Set a            -- ^ Flood filled
+-- floodFill f = snd . floodFillCount f
